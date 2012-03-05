@@ -2,7 +2,7 @@ package Net::Stomp::Producer;
 use Moose;
 use namespace::autoclean;
 with 'Net::Stomp::MooseHelpers::CanConnect';
-use Moose::Types::Moose qw(CodeRef HashRef);
+use MooseX::Types::Moose qw(CodeRef HashRef);
 use Net::Stomp::Producer::Exceptions;
 use Try::Tiny;
 
@@ -63,6 +63,12 @@ sub _no_serializer {
     });
 }
 
+has default_headers => (
+    isa => HashRef,
+    is => 'rw',
+    default => sub { { } },
+);
+
 sub send {
     my ($self,$destination,$headers,$body) = @_;
     use bytes;
@@ -76,7 +82,12 @@ sub send {
         body => $body,
     );
 
-    $actual_headers->{destination} = $destination if defined $destination;
+    $actual_headers{destination} = $destination if defined $destination;
+
+    for ($actual_headers{destination}) {
+        $_ = "/$_"
+            unless m{^/};
+    }
 
     $self->connection->send(\%actual_headers);
 

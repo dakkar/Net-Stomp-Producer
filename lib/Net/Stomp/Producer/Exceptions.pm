@@ -36,13 +36,13 @@ use Net::Stomp::MooseHelpers::Exceptions;
          $self->reason,dump($self->message),$self->previous_exception,
          $self->stack_trace->as_string;
  }
- __PACKAGE__->meta->make_immutable;
+ __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 }
 
 {package Net::Stomp::Producer::Exceptions::CantSerialize;
  use Moose;extends 'Net::Stomp::Producer::Exceptions::BadMessage';
  has '+reason' => ( default => q{couldn't serialize message} );
- __PACKAGE__->meta->make_immutable;
+ __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 }
 
 {package Net::Stomp::Producer::Exceptions::BadTransformer;
@@ -57,7 +57,7 @@ use Net::Stomp::MooseHelpers::Exceptions;
      sprintf qq{%s is not a valid transformer, it doesn't have a "transform" method\n%s},
          $self->transformer,$self->stack_trace->as_string;
  }
- __PACKAGE__->meta->make_immutable;
+ __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 }
 
 1;
