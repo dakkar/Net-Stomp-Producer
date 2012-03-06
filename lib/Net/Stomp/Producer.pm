@@ -81,7 +81,8 @@ sub send {
     my ($self,$destination,$headers,$body) = @_;
     use bytes;
 
-    $body = $self->serializer->($body);
+    try { $body = $self->serializer->($body) }
+    catch { Net::Stomp::Producer::Exceptions::CantSerialize->throw };
 
     my %actual_headers=(
         %{$self->default_headers},
