@@ -48,6 +48,14 @@ They all send the same message.
 
 =cut
 
+# we automatically send the C<connect> frame
+around _build_connection => sub {
+    my ($orig,$self,@etc) = @_;
+    my $conn = $self->$orig(@etc);
+    $conn->connect();
+    return $conn;
+};
+
 has serializer => (
     isa => CodeRef,
     is => 'rw',
