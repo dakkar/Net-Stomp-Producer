@@ -103,8 +103,18 @@ sub send {
     return;
 }
 
+has transformer_args => (
+    is => 'rw',
+    isa => HashRef,
+    default => {},
+);
+
 sub transform_and_send {
     my ($self,$transformer,@input) = @_;
+
+    if (!ref($transformer) && $transformer->can('new')) {
+        $transformer = $transformer->new($self->transformer_args);
+    }
 
     my $method = try { $transformer->can('transform') }
         or Net::Stomp::Producer::Exceptions::BadTransformer->throw({
