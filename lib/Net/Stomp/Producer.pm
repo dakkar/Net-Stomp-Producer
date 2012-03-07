@@ -106,7 +106,7 @@ sub send {
 has transformer_args => (
     is => 'rw',
     isa => HashRef,
-    default => {},
+    default => sub { { } },
 );
 
 sub transform_and_send {
