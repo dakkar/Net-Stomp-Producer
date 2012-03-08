@@ -49,7 +49,7 @@ use Moose;with 'Throwable',
     'Net::Stomp::MooseHelpers::Exceptions::Stringy',
     'Net::Stomp::Producer::Exceptions::StackTrace';
 use namespace::autoclean;
-use Data::Dump 'dump';
+use Data::Dump 'pp';
 has message_body => ( is => 'ro', required => 1 );
 has message_headers => ( is => 'ro', required => 0 );
 has reason => ( is => 'ro', default => q{sending the message didn't work} );
@@ -57,7 +57,7 @@ has reason => ( is => 'ro', default => q{sending the message didn't work} );
 sub as_string {
     my ($self) = @_;
     sprintf "%s (%s): %s\n%s",
-        $self->reason,dump($self->message_body),
+        $self->reason,pp($self->message_body),
         $self->previous_exception,
         $self->stack_trace->as_string;
 }
