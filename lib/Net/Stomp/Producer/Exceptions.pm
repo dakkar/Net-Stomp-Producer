@@ -108,6 +108,7 @@ package Net::Stomp::Producer::Exceptions::Invalid;
   $Net::Stomp::Producer::Exceptions::Invalid::DIST = 'Net-Stomp-Producer';
 }
 use Moose;extends 'Net::Stomp::Producer::Exceptions::BadMessage';
+use Data::Dump 'pp';
 use namespace::autoclean;
 has transformer => ( is => 'ro', required => 1 );
 has reason => ( is => 'ro', default => q{the message didn't pass validation} );
@@ -115,7 +116,7 @@ has reason => ( is => 'ro', default => q{the message didn't pass validation} );
 sub as_string {
     my ($self) = @_;
     sprintf "%s (%s): %s\n%s",
-        $self->reason,dump($self->message_body),$self->previous_exception,
+        $self->reason,pp($self->message_body),$self->previous_exception,
         $self->stack_trace->as_string;
 }
 __PACKAGE__->meta->make_immutable(inline_constructor=>0);
