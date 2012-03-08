@@ -1,6 +1,43 @@
 package Net::Stomp::Producer::Exceptions;
 use Net::Stomp::MooseHelpers::Exceptions;
 
+# ABSTRACT: exception classes for Net::Stomp::Producer
+
+=head1 DESCRIPTION
+
+This file defines the following exception classes, all based on
+L<Throwable>:
+
+=over 4
+
+=item C<Net::Stomp::Producer::Exceptions::BadMessage>
+
+Attributes: C<message_headers>, C<message_body>, C<reason>, C<stack_trace>.
+
+=item C<Net::Stomp::Producer::Exceptions::CantSerialize>
+
+Subclass of L</Net::Stomp::Producer::Exceptions::BadMessage>;
+attributes: C<reason>.
+
+Throw when the serialization fails.
+
+=item C<Net::Stomp::Producer::Exceptions::BadTransformer>
+
+Attributes: C<transformer>, C<stack_trace>.
+
+Thrown when the transformer does not have a C<transform> method.
+
+=item C<Net::Stomp::Producer::Exceptions::Invalid>
+
+Subclass of L</Net::Stomp::Producer::Exceptions::BadMessage>;
+attributes: C<transformer>, C<reason>.
+
+Thrown when validation fails.
+
+=back
+
+=cut
+
 {
 package Net::Stomp::Producer::Exceptions::StackTrace;
 use Moose::Role;

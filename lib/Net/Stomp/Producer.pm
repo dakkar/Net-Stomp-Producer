@@ -128,6 +128,16 @@ around _build_connection => sub {
     return $conn;
 };
 
+=attr C<serializer>
+
+A coderef that, passed the body parameter from L</send>, returns a
+byte string to use as the frame body. The default coderef will just
+pass non-refs through, and die (with a
+L<Net::Stomp::Producer::Exceptions::CantSerialize> exception) if
+passed a ref.
+
+=cut
+
 has serializer => (
     isa => CodeRef,
     is => 'rw',
@@ -144,11 +154,32 @@ sub _no_serializer {
     });
 }
 
+=attr C<default_headers>
+
+Hashref of STOMP headers to use for every frame we send. Headers
+passed in to L</send> take precedence. There is no support for
+I<removing> a default header for a single send.
+
+=cut
+
 has default_headers => (
     isa => HashRef,
     is => 'rw',
     default => sub { { } },
 );
+
+=method C<send>
+
+  $p->send($destination,\%headers,$body);
+
+Serializes the C<$body> via the L</serializer>, merges the C<%headers>
+with the L</default_headers>, setting the C<content-length> to the
+byte length of the serialized body. Overrides the destination in the
+headers with C<$destination> if it's defined.
+
+Finally, sends the frame.
+
+=cut
 
 sub send {
     my ($self,$destination,$headers,$body) = @_;
@@ -180,11 +211,33 @@ sub send {
     return;
 }
 
+=attr C<transformer_args>
+
+Hashref to pass to the transformer constructor when
+L</make_transformer> instantiates a transformer class.
+
+=cut
+
 has transformer_args => (
     is => 'rw',
     isa => HashRef,
     default => sub { { } },
 );
+
+=method C<make_transformer>
+
+  $p->make_transformer($class);
+
+If passed a reference, this function just returns it (it assumes it's
+a transformer object ready to use).
+
+If passed a string, tries to load the class with
+L<Class::Load::load_class|Class::Load/load_class>. If the class has a
+C<new> method, it's invoked with the value of L</transformer_args> to
+obtain an object that is then returned. If the class does not have a
+C<new>, the class name is returned.
+
+=cut
 
 sub make_transformer {
     my ($self,$transformer) = @_;
@@ -197,6 +250,39 @@ sub make_transformer {
     }
     return $transformer;
 }
+
+=method C<transform_and_send>
+
+  $p->transform_and_send($transformer,@data);
+
+Uses L</make_transformer> to (optionally) instantiate a transformer
+object, then tries to call C<transform> on it. If there is no such
+method, a L<Net::Stomp::Producer::Exceptions::BadTransformer> is
+thrown.
+
+The transformer is expected to return a list of (header,body) pairs
+(that is, a list with an even number of elements; I<not> a list of
+arrayrefs!).
+
+Each message in the returned list is optionally validated, then sent
+(via the L</send> method).
+
+The optional validation happens if the transformer C<<
+->can('validate') >>. IF it can, that method is called like:
+
+  $transformer->validate($header,$body_ref);
+
+The method is expected to return a true value if the message is valid,
+and throw a meaningful exception if it is not. The exception will be
+wrapped in a L<Net::Stomp::Producer::Exceptions::Invalid>. If the
+C<validate> method returns false without throwing any exception,
+L<Net::Stomp::Producer::Exceptions::Invalid> will still be throw, but
+the C<previous_exception> slot will be undef.
+
+It's not an error for the transformer to return an empty list: it just
+means that nothing will be sent.
+
+=cut
 
 sub transform_and_send {
     my ($self,$transformer,@input) = @_;
