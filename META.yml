@@ -1,0 +1,37 @@
+---
+abstract: 'helper object to send messages via Net::Stomp'
+author:
+  - 'Gianni Ceccarelli <gianni.ceccarelli@net-a-porter.com>'
+build_requires:
+  Test::More: 0
+  strict: 0
+  warnings: 0
+configure_requires:
+  ExtUtils::MakeMaker: 6.30
+dynamic_config: 0
+generated_by: 'Dist::Zilla version 4.300009, CPAN::Meta::Converter version 2.120530'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Net-Stomp-Producer
+no_index:
+  directory:
+    - t/lib
+requires:
+  Class::Load: 0
+  Data::Dump: 0
+  Moose: 0
+  Moose::Role: 0
+  MooseX::Types::Moose: 0
+  Net::Stomp::MooseHelpers::CanConnect: 0
+  Net::Stomp::MooseHelpers::Exceptions: 0
+  Net::Stomp::MooseHelpers::Exceptions::Stringy: 0
+  Net::Stomp::Producer::Exceptions::BadMessage: 0
+  Net::Stomp::Producer::Exceptions::StackTrace: 0
+  StackTrace::Auto: 0
+  Throwable: 0
+  Try::Tiny: 0
+  bytes: 0
+  namespace::autoclean: 0
+version: 0.0.1

@@ -1,4 +1,10 @@
 package Net::Stomp::Producer;
+{
+  $Net::Stomp::Producer::VERSION = '0.0.1';
+}
+{
+  $Net::Stomp::Producer::DIST = 'Net-Stomp-Producer';
+}
 use Moose;
 use namespace::autoclean;
 with 'Net::Stomp::MooseHelpers::CanConnect';
@@ -8,6 +14,141 @@ use Class::Load 'load_class';
 use Try::Tiny;
 
 # ABSTRACT: helper object to send messages via Net::Stomp
+
+
+# we automatically send the C<connect> frame
+around _build_connection => sub {
+    my ($orig,$self,@etc) = @_;
+    my $conn = $self->$orig(@etc);
+    $conn->connect();
+    return $conn;
+};
+
+
+has serializer => (
+    isa => CodeRef,
+    is => 'rw',
+    default => \&_no_serializer,
+);
+
+sub _no_serializer {
+    my ($message) = @_;
+    return $message unless ref $message;
+
+    Net::Stomp::Producer::Exceptions::CantSerialize->throw({
+        previous_exception => q{can't send a reference without a serializer},
+        message_body => $message,
+    });
+}
+
+
+has default_headers => (
+    isa => HashRef,
+    is => 'rw',
+    default => sub { { } },
+);
+
+
+sub send {
+    my ($self,$destination,$headers,$body) = @_;
+    use bytes;
+
+    try { $body = $self->serializer->($body) }
+    catch {
+        Net::Stomp::Producer::Exceptions::CantSerialize->throw({
+            message_body => $body,
+        });
+    };
+
+    my %actual_headers=(
+        %{$self->default_headers},
+        %$headers,
+        'content-length' => length($body),
+        body => $body,
+    );
+
+    $actual_headers{destination} = $destination if defined $destination;
+
+    for ($actual_headers{destination}) {
+        $_ = "/$_"
+            unless m{^/};
+    }
+
+    $self->connection->send(\%actual_headers);
+
+    return;
+}
+
+
+has transformer_args => (
+    is => 'rw',
+    isa => HashRef,
+    default => sub { { } },
+);
+
+
+sub make_transformer {
+    my ($self,$transformer) = @_;
+
+    return $transformer if ref($transformer);
+
+    load_class($transformer);
+    if ($transformer->can('new')) {
+        return $transformer->new($self->transformer_args);
+    }
+    return $transformer;
+}
+
+
+sub transform_and_send {
+    my ($self,$transformer,@input) = @_;
+
+    $transformer=$self->make_transformer($transformer);
+
+    my $method = try { $transformer->can('transform') }
+        or Net::Stomp::Producer::Exceptions::BadTransformer->throw({
+            transformer => $transformer,
+        });
+
+    my @messages = $transformer->$method(@input);
+
+    my $vmethod = try { $transformer->can('validate') };
+
+    while (my ($headers, $body) = splice @messages, 0, 2) {
+        if ($vmethod) {
+            my $exception;
+            my $valid = try {
+                $transformer->$vmethod($headers,$body);
+            } catch { $exception = $_ };
+            if (!$valid) {
+                Net::Stomp::Producer::Exceptions::Invalid->throw({
+                    transformer => $transformer,
+                    message_body => $body,
+                    message_headers => $headers,
+                    previous_exception => $exception,
+                });
+            }
+        }
+        $self->send(undef,$headers,$body);
+    }
+
+    return;
+}
+
+1;
+
+__END__
+=pod
+
+=encoding utf-8
+
+=head1 NAME
+
+Net::Stomp::Producer - helper object to send messages via Net::Stomp
+
+=head1 VERSION
+
+version 0.0.1
 
 =head1 SYNOPSIS
 
@@ -118,17 +259,9 @@ the C<validate> method returns false without throwing any exception,
 L<Net::Stomp::Producer::Exceptions::Invalid> will still be throw, but
 the C<previous_exception> slot will be undef.
 
-=cut
+=head1 ATTRIBUTES
 
-# we automatically send the C<connect> frame
-around _build_connection => sub {
-    my ($orig,$self,@etc) = @_;
-    my $conn = $self->$orig(@etc);
-    $conn->connect();
-    return $conn;
-};
-
-=attr C<serializer>
+=head2 C<serializer>
 
 A coderef that, passed the body parameter from L</send>, returns a
 byte string to use as the frame body. The default coderef will just
@@ -136,39 +269,20 @@ pass non-refs through, and die (with a
 L<Net::Stomp::Producer::Exceptions::CantSerialize> exception) if
 passed a ref.
 
-=cut
-
-has serializer => (
-    isa => CodeRef,
-    is => 'rw',
-    default => \&_no_serializer,
-);
-
-sub _no_serializer {
-    my ($message) = @_;
-    return $message unless ref $message;
-
-    Net::Stomp::Producer::Exceptions::CantSerialize->throw({
-        previous_exception => q{can't send a reference without a serializer},
-        message_body => $message,
-    });
-}
-
-=attr C<default_headers>
+=head2 C<default_headers>
 
 Hashref of STOMP headers to use for every frame we send. Headers
 passed in to L</send> take precedence. There is no support for
 I<removing> a default header for a single send.
 
-=cut
+=head2 C<transformer_args>
 
-has default_headers => (
-    isa => HashRef,
-    is => 'rw',
-    default => sub { { } },
-);
+Hashref to pass to the transformer constructor when
+L</make_transformer> instantiates a transformer class.
 
-=method C<send>
+=head1 METHODS
+
+=head2 C<send>
 
   $p->send($destination,\%headers,$body);
 
@@ -179,52 +293,7 @@ headers with C<$destination> if it's defined.
 
 Finally, sends the frame.
 
-=cut
-
-sub send {
-    my ($self,$destination,$headers,$body) = @_;
-    use bytes;
-
-    try { $body = $self->serializer->($body) }
-    catch {
-        Net::Stomp::Producer::Exceptions::CantSerialize->throw({
-            message_body => $body,
-        });
-    };
-
-    my %actual_headers=(
-        %{$self->default_headers},
-        %$headers,
-        'content-length' => length($body),
-        body => $body,
-    );
-
-    $actual_headers{destination} = $destination if defined $destination;
-
-    for ($actual_headers{destination}) {
-        $_ = "/$_"
-            unless m{^/};
-    }
-
-    $self->connection->send(\%actual_headers);
-
-    return;
-}
-
-=attr C<transformer_args>
-
-Hashref to pass to the transformer constructor when
-L</make_transformer> instantiates a transformer class.
-
-=cut
-
-has transformer_args => (
-    is => 'rw',
-    isa => HashRef,
-    default => sub { { } },
-);
-
-=method C<make_transformer>
+=head2 C<make_transformer>
 
   $p->make_transformer($class);
 
@@ -237,21 +306,7 @@ C<new> method, it's invoked with the value of L</transformer_args> to
 obtain an object that is then returned. If the class does not have a
 C<new>, the class name is returned.
 
-=cut
-
-sub make_transformer {
-    my ($self,$transformer) = @_;
-
-    return $transformer if ref($transformer);
-
-    load_class($transformer);
-    if ($transformer->can('new')) {
-        return $transformer->new($self->transformer_args);
-    }
-    return $transformer;
-}
-
-=method C<transform_and_send>
+=head2 C<transform_and_send>
 
   $p->transform_and_send($transformer,@data);
 
@@ -282,41 +337,16 @@ the C<previous_exception> slot will be undef.
 It's not an error for the transformer to return an empty list: it just
 means that nothing will be sent.
 
+=head1 AUTHOR
+
+Gianni Ceccarelli <gianni.ceccarelli@net-a-porter.com>
+
+=head1 COPYRIGHT AND LICENSE
+
+This software is copyright (c) 2012 by Net-a-porter.com.
+
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+
 =cut
 
-sub transform_and_send {
-    my ($self,$transformer,@input) = @_;
-
-    $transformer=$self->make_transformer($transformer);
-
-    my $method = try { $transformer->can('transform') }
-        or Net::Stomp::Producer::Exceptions::BadTransformer->throw({
-            transformer => $transformer,
-        });
-
-    my @messages = $transformer->$method(@input);
-
-    my $vmethod = try { $transformer->can('validate') };
-
-    while (my ($headers, $body) = splice @messages, 0, 2) {
-        if ($vmethod) {
-            my $exception;
-            my $valid = try {
-                $transformer->$vmethod($headers,$body);
-            } catch { $exception = $_ };
-            if (!$valid) {
-                Net::Stomp::Producer::Exceptions::Invalid->throw({
-                    transformer => $transformer,
-                    message_body => $body,
-                    message_headers => $headers,
-                    previous_exception => $exception,
-                });
-            }
-        }
-        $self->send(undef,$headers,$body);
-    }
-
-    return;
-}
-
-1;
