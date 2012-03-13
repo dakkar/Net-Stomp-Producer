@@ -124,9 +124,28 @@ the C<previous_exception> slot will be undef.
 around _build_connection => sub {
     my ($orig,$self,@etc) = @_;
     my $conn = $self->$orig(@etc);
-    $conn->connect();
+    $self->_connect($conn);
     return $conn;
 };
+
+sub _connect {
+    my ($self,$connection) = @_;
+
+    try {
+        my $server = $self->current_server;
+        my %headers = (
+            %{$self->connect_headers},
+            %{$server->{connect_headers} || {}},
+        );
+        $connection->connect(\%headers);
+    } catch {
+        Net::Stomp::MooseHelpers::Exceptions::Stomp->throw({
+            stomp_error => $_
+        });
+    };
+}
+
+sub connect { warn "No-op, Net::Stomp::Producer connects on its own" }
 
 =attr C<serializer>
 
@@ -141,7 +160,7 @@ passed a ref.
 has serializer => (
     isa => CodeRef,
     is => 'rw',
-    default => \&_no_serializer,
+    default => sub { \&_no_serializer },
 );
 
 sub _no_serializer {
@@ -187,6 +206,7 @@ sub send {
 
     try { $body = $self->serializer->($body) }
     catch {
+        local $@=$_;
         Net::Stomp::Producer::Exceptions::CantSerialize->throw({
             message_body => $body,
         });
@@ -305,11 +325,11 @@ sub transform_and_send {
                 $transformer->$vmethod($headers,$body);
             } catch { $exception = $_ };
             if (!$valid) {
+                local $@=$exception;
                 Net::Stomp::Producer::Exceptions::Invalid->throw({
                     transformer => $transformer,
                     message_body => $body,
                     message_headers => $headers,
-                    previous_exception => $exception,
                 });
             }
         }
