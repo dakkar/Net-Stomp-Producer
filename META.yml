@@ -30,9 +30,6 @@ requires:
   MooseX::Types::Moose: 0
   Net::Stomp::MooseHelpers::CanConnect: 0
   Net::Stomp::MooseHelpers::Exceptions: 0
-  Net::Stomp::MooseHelpers::Exceptions::Stringy: 0
-  Net::Stomp::Producer::Exceptions::BadMessage: 0
-  Net::Stomp::Producer::Exceptions::StackTrace: 0
   StackTrace::Auto: 0
   Throwable: 0
   Try::Tiny: 0
