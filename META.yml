@@ -35,4 +35,4 @@ requires:
   Try::Tiny: 0
   bytes: 0
   namespace::autoclean: 0
-version: 0.0.1
+version: 0.1_01

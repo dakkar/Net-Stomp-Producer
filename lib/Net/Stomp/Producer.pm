@@ -1,6 +1,6 @@
 package Net::Stomp::Producer;
 {
-  $Net::Stomp::Producer::VERSION = '0.0.1';
+  $Net::Stomp::Producer::VERSION = '0.1_01';
 }
 {
   $Net::Stomp::Producer::DIST = 'Net-Stomp-Producer';
@@ -168,7 +168,7 @@ Net::Stomp::Producer - helper object to send messages via Net::Stomp
 
 =head1 VERSION
 
-version 0.0.1
+version 0.1_01
 
 =head1 SYNOPSIS
 
