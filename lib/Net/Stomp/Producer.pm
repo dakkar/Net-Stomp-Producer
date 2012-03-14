@@ -41,6 +41,7 @@ sub _connect {
     };
 }
 
+
 sub connect { warn "No-op, Net::Stomp::Producer connects on its own" }
 
 
@@ -301,6 +302,12 @@ Hashref to pass to the transformer constructor when
 L</make_transformer> instantiates a transformer class.
 
 =head1 METHODS
+
+=head2 C<connect>
+
+Since the connection is set up automatically, this method (usually
+provided by L<Net::Stomp::MooseHelpers::CanConnect>) is overridden to
+be a no-op and warn. Don't call it.
 
 =head2 C<send>
 
