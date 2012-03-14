@@ -10,3 +10,4 @@ META.yml
 .prove
 *~
 /.build/
+/Net-Stomp-Producer*
