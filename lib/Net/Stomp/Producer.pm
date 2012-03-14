@@ -145,6 +145,14 @@ sub _connect {
     };
 }
 
+=method C<connect>
+
+Since the connection is set up automatically, this method (usually
+provided by L<Net::Stomp::MooseHelpers::CanConnect>) is overridden to
+be a no-op and warn. Don't call it.
+
+=cut
+
 sub connect { warn "No-op, Net::Stomp::Producer connects on its own" }
 
 =attr C<serializer>
