@@ -3,6 +3,10 @@ abstract: 'helper object to send messages via Net::Stomp'
 author:
   - 'Gianni Ceccarelli <gianni.ceccarelli@net-a-porter.com>'
 build_requires:
+  Data::Printer: 0
+  JSON::XS: 0
+  Test::Deep: 0
+  Test::Fatal: 0
   Test::More: 0
   strict: 0
   warnings: 0

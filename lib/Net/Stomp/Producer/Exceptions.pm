@@ -58,7 +58,7 @@ sub as_string {
     my ($self) = @_;
     sprintf "%s (%s): %s\n%s",
         $self->reason,pp($self->message_body),
-        $self->previous_exception,
+        $self->previous_exception||'no previous exception',
         $self->stack_trace->as_string;
 }
 __PACKAGE__->meta->make_immutable(inline_constructor=>0);
