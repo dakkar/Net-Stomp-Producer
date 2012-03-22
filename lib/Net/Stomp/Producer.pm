@@ -51,7 +51,12 @@ They all send the same message.
 
 This class sends messages via a STOMP connection (see
 L<Net::Stomp::MooseHelpers::CanConnect>). It provides facilities for
-serialisation and validation.
+serialisation and validation. You can have an instance of this class
+as a singleton / global in your process, and use it to send all your
+messages: this is recommended, as it will prevent flooding the broker
+with many connections (each instance would connect independently, and
+if you create many instances per second, the broker or your process
+may run out of file descriptiors and stop working).
 
 You can use it at several levels:
 
@@ -346,5 +351,14 @@ sub transform_and_send {
 
     return;
 }
+
+__PACKAGE__->meta->make_immutable;
+
+=head1 EXAMPLES
+
+You can find examples of use in the tests, or at
+https://github.com/dakkar/CatalystX-StompSampleApps
+
+=cut
 
 1;
