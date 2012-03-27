@@ -1,6 +1,6 @@
 package Net::Stomp::Producer;
 {
-  $Net::Stomp::Producer::VERSION = '0.1_01';
+  $Net::Stomp::Producer::VERSION = '1.0';
 }
 {
   $Net::Stomp::Producer::DIST = 'Net-Stomp-Producer';
@@ -156,6 +156,9 @@ sub transform_and_send {
     return;
 }
 
+__PACKAGE__->meta->make_immutable;
+
+
 1;
 
 __END__
@@ -169,7 +172,7 @@ Net::Stomp::Producer - helper object to send messages via Net::Stomp
 
 =head1 VERSION
 
-version 0.1_01
+version 1.0
 
 =head1 SYNOPSIS
 
@@ -213,7 +216,12 @@ They all send the same message.
 
 This class sends messages via a STOMP connection (see
 L<Net::Stomp::MooseHelpers::CanConnect>). It provides facilities for
-serialisation and validation.
+serialisation and validation. You can have an instance of this class
+as a singleton / global in your process, and use it to send all your
+messages: this is recommended, as it will prevent flooding the broker
+with many connections (each instance would connect independently, and
+if you create many instances per second, the broker or your process
+may run out of file descriptiors and stop working).
 
 You can use it at several levels:
 
@@ -363,6 +371,11 @@ the C<previous_exception> slot will be undef.
 
 It's not an error for the transformer to return an empty list: it just
 means that nothing will be sent.
+
+=head1 EXAMPLES
+
+You can find examples of use in the tests, or at
+https://github.com/dakkar/CatalystX-StompSampleApps
 
 =head1 AUTHOR
 
