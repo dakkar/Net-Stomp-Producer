@@ -69,6 +69,7 @@ use Data::Dump 'pp';
 has message_body => ( is => 'ro', required => 1 );
 has message_headers => ( is => 'ro', required => 0 );
 has reason => ( is => 'ro', default => q{sending the message didn't work} );
+has '+previous_exception' => ( init_arg => 'previous_exception' );
 
 sub as_string {
     my ($self) = @_;
