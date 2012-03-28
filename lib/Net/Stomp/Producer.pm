@@ -219,9 +219,13 @@ sub send {
 
     try { $body = $self->serializer->($body) }
     catch {
-        local $@=$_;
+        if (eval {$_[0]->isa('Net::Stomp::Producer::Exceptions::CantSerialize')}) {
+            die $_[0];
+        }
+        my $prev=$_[0];
         Net::Stomp::Producer::Exceptions::CantSerialize->throw({
             message_body => $body,
+            previous_exception => $prev,
         });
     };
 

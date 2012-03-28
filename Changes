@@ -1,4 +1,5 @@
 {{$NEXT}}
+- fix failing tests due to exception handling on perl < 5.14
 
 1.0       2012-03-27 12:36:33 Europe/London
 - first non-devel release
