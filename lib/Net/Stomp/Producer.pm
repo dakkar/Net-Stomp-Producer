@@ -1,6 +1,6 @@
 package Net::Stomp::Producer;
 {
-  $Net::Stomp::Producer::VERSION = '1.0';
+  $Net::Stomp::Producer::VERSION = '1.001';
 }
 {
   $Net::Stomp::Producer::DIST = 'Net-Stomp-Producer';
@@ -75,9 +75,13 @@ sub send {
 
     try { $body = $self->serializer->($body) }
     catch {
-        local $@=$_;
+        if (eval {$_[0]->isa('Net::Stomp::Producer::Exceptions::CantSerialize')}) {
+            die $_[0];
+        }
+        my $prev=$_[0];
         Net::Stomp::Producer::Exceptions::CantSerialize->throw({
             message_body => $body,
+            previous_exception => $prev,
         });
     };
 
@@ -172,7 +176,7 @@ Net::Stomp::Producer - helper object to send messages via Net::Stomp
 
 =head1 VERSION
 
-version 1.0
+version 1.001
 
 =head1 SYNOPSIS
 
