@@ -243,7 +243,16 @@ sub send {
             unless m{^/};
     }
 
-    $self->connection->send(\%actual_headers);
+    while (1) {
+        my $done=0;
+        try {
+            $self->connection->send(\%actual_headers);
+            $done=1;
+        } catch {
+            $self->clear_connection;
+        };
+        last if $done;
+    }
 
     return;
 }

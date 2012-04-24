@@ -87,7 +87,7 @@ subtest 'straight send' => sub {
                    [
                        'new',
                        'CallBacks',
-                       { hostname => 'test-host', port => 9999 },
+                       { hosts => [ {hostname => 'test-host', port => 9999 } ] },
                    ],
                    [
                        'connect',
