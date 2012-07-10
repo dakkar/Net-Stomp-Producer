@@ -1,4 +1,6 @@
 {{$NEXT}}
+- use the new ReconnectOnFailure role from Net::Stomp::MooseHelpers
+- calling ->connect() does not warn anymore, it's just a silent no-op
 
 1.001     2012-03-28 12:37:38 Europe/London
 - fix failing tests due to exception handling on perl < 5.14
