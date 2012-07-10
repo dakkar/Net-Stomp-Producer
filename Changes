@@ -1,4 +1,6 @@
-1.002     2012-07-10 12:23:16 Europe/London
+1.1       2012-07-10 12:26:06 Europe/London
+- use the new ReconnectOnFailure role from Net::Stomp::MooseHelpers
+- calling ->connect() does not warn anymore, it's just a silent no-op
 
 1.001     2012-03-28 12:37:38 Europe/London
 - fix failing tests due to exception handling on perl < 5.14
