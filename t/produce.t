@@ -99,7 +99,6 @@ subtest 'straight send' => sub {
                        ignore(),
                        {
                             body  => '{"a":"message"}',
-                            'content-length' => 15,
                             default => 'header',
                             destination => '/somewhere',
                        },
@@ -125,7 +124,6 @@ subtest 'serialise & send' => sub {
                        ignore(),
                        {
                             body  => '{"a":"message"}',
-                            'content-length' => 15,
                             default => 'header',
                             destination => '/somewhere',
                        },
@@ -153,7 +151,6 @@ subtest 'transformer class' => sub {
                        ignore(),
                        {
                             body  => '{"me":"TransformClass","data":[["some","data"]]}',
-                            'content-length' => 48,
                             default => 'header',
                             destination => '/a_class',
                        },
@@ -181,7 +178,6 @@ subtest 'transformer instance' => sub {
                        ignore(),
                        {
                             body  => '{"me":"TransformInstance","data":[["some","data"]],"param":"passed in"}',
-                            'content-length' => 71,
                             default => 'header',
                             destination => '/a_instance',
                        },
