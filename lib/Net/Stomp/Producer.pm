@@ -1,7 +1,8 @@
 package Net::Stomp::Producer;
 use Moose;
 use namespace::autoclean;
-with 'Net::Stomp::MooseHelpers::CanConnect';
+with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '1.1' };
+with 'Net::Stomp::MooseHelpers::ReconnectOnFailure';
 use MooseX::Types::Moose qw(CodeRef HashRef);
 use Net::Stomp::Producer::Exceptions;
 use Class::Load 'load_class';
@@ -123,43 +124,6 @@ the C<validate> method returns false without throwing any exception,
 L<Net::Stomp::Producer::Exceptions::Invalid> will still be throw, but
 the C<previous_exception> slot will be undef.
 
-=cut
-
-# we automatically send the C<connect> frame
-around _build_connection => sub {
-    my ($orig,$self,@etc) = @_;
-    my $conn = $self->$orig(@etc);
-    $self->_connect($conn);
-    return $conn;
-};
-
-sub _connect {
-    my ($self,$connection) = @_;
-
-    try {
-        my $server = $self->current_server;
-        my %headers = (
-            %{$self->connect_headers},
-            %{$server->{connect_headers} || {}},
-        );
-        $connection->connect(\%headers);
-    } catch {
-        Net::Stomp::MooseHelpers::Exceptions::Stomp->throw({
-            stomp_error => $_
-        });
-    };
-}
-
-=method C<connect>
-
-Since the connection is set up automatically, this method (usually
-provided by L<Net::Stomp::MooseHelpers::CanConnect>) is overridden to
-be a no-op and warn. Don't call it.
-
-=cut
-
-sub connect { warn "No-op, Net::Stomp::Producer connects on its own" }
-
 =attr C<serializer>
 
 A coderef that, passed the body parameter from L</send>, returns a
@@ -243,7 +207,9 @@ sub send {
             unless m{^/};
     }
 
-    $self->connection->send(\%actual_headers);
+    $self->reconnect_on_failure(
+        sub{ $_[0]->connection->send($_[1]) },
+        \%actual_headers);
 
     return;
 }
