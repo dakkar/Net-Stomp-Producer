@@ -1,4 +1,4 @@
-1.002     2012-04-24 13:56:22 Europe/London
+1.002     2012-07-10 12:23:16 Europe/London
 
 1.001     2012-03-28 12:37:38 Europe/London
 - fix failing tests due to exception handling on perl < 5.14
