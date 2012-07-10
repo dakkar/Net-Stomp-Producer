@@ -36,4 +36,4 @@ requires:
   Try::Tiny: 0
   bytes: 0
   namespace::autoclean: 0
-version: 1.1
+version: 1.2
