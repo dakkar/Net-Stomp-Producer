@@ -60,7 +60,7 @@ sub send {
     my %actual_headers=(
         %{$self->default_headers},
         %$headers,
-        'content-length' => length($body),
+        #'content-length' => length($body),
         body => $body,
     );
 

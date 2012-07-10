@@ -1,4 +1,4 @@
-1.1       2012-07-10 12:27:04 Europe/London
+1.1       2012-07-10 12:28:35 Europe/London
 - use the new ReconnectOnFailure role from Net::Stomp::MooseHelpers
 - calling ->connect() does not warn anymore, it's just a silent no-op
 
