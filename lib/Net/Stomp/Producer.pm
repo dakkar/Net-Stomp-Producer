@@ -99,7 +99,7 @@ sub make_transformer {
 }
 
 
-sub transform_and_send {
+sub transform {
     my ($self,$transformer,@input) = @_;
 
     $transformer=$self->make_transformer($transformer);
@@ -112,6 +112,8 @@ sub transform_and_send {
     my @messages = $transformer->$method(@input);
 
     my $vmethod = try { $transformer->can('validate') };
+
+    my @ret;
 
     while (my ($headers, $body) = splice @messages, 0, 2) {
         if ($vmethod) {
@@ -128,6 +130,19 @@ sub transform_and_send {
                 });
             }
         }
+        push @ret,$headers,$body;
+    }
+
+    return @ret;
+}
+
+
+sub transform_and_send {
+    my ($self,$transformer,@input) = @_;
+
+    my @messages = $self->transform($transformer,@input);
+
+    while (my ($headers, $body) = splice @messages, 0, 2) {
         $self->send(undef,$headers,$body);
     }
 
@@ -313,9 +328,9 @@ C<new> method, it's invoked with the value of L</transformer_args> to
 obtain an object that is then returned. If the class does not have a
 C<new>, the class name is returned.
 
-=head2 C<transform_and_send>
+=head2 C<transform>
 
-  $p->transform_and_send($transformer,@data);
+  my (@headers_and_bodies) = $p->transform($transformer,@data);
 
 Uses L</make_transformer> to (optionally) instantiate a transformer
 object, then tries to call C<transform> on it. If there is no such
@@ -326,11 +341,10 @@ The transformer is expected to return a list of (header,body) pairs
 (that is, a list with an even number of elements; I<not> a list of
 arrayrefs!).
 
-Each message in the returned list is optionally validated, then sent
-(via the L</send> method).
+Each message in the returned list is optionally validated, then returned.
 
 The optional validation happens if the transformer C<<
-->can('validate') >>. IF it can, that method is called like:
+->can('validate') >>. If it can, that method is called like:
 
   $transformer->validate($header,$body_ref);
 
@@ -340,6 +354,20 @@ wrapped in a L<Net::Stomp::Producer::Exceptions::Invalid>. If the
 C<validate> method returns false without throwing any exception,
 L<Net::Stomp::Producer::Exceptions::Invalid> will still be throw, but
 the C<previous_exception> slot will be undef.
+
+It's not an error for the transformer to return an empty list: it just
+means that nothing will be returned.
+
+=head2 C<transform_and_send>
+
+  $p->transform_and_send($transformer,@data);
+
+Similar to:
+
+  my ($header,$body) = $p->transform($transformer,@data);
+  $p->send(undef,$header,$body);
+
+but it works also when the transformer returns more than one pair.
 
 It's not an error for the transformer to return an empty list: it just
 means that nothing will be sent.
