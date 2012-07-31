@@ -254,9 +254,9 @@ sub make_transformer {
     return $transformer;
 }
 
-=method C<transform_and_send>
+=method C<transform>
 
-  $p->transform_and_send($transformer,@data);
+  my (@headers_and_bodies) = $p->transform($transformer,@data);
 
 Uses L</make_transformer> to (optionally) instantiate a transformer
 object, then tries to call C<transform> on it. If there is no such
@@ -267,11 +267,10 @@ The transformer is expected to return a list of (header,body) pairs
 (that is, a list with an even number of elements; I<not> a list of
 arrayrefs!).
 
-Each message in the returned list is optionally validated, then sent
-(via the L</send> method).
+Each message in the returned list is optionally validated, then returned.
 
 The optional validation happens if the transformer C<<
-->can('validate') >>. IF it can, that method is called like:
+->can('validate') >>. If it can, that method is called like:
 
   $transformer->validate($header,$body_ref);
 
@@ -283,11 +282,11 @@ L<Net::Stomp::Producer::Exceptions::Invalid> will still be throw, but
 the C<previous_exception> slot will be undef.
 
 It's not an error for the transformer to return an empty list: it just
-means that nothing will be sent.
+means that nothing will be returned.
 
 =cut
 
-sub transform_and_send {
+sub transform {
     my ($self,$transformer,@input) = @_;
 
     $transformer=$self->make_transformer($transformer);
@@ -300,6 +299,8 @@ sub transform_and_send {
     my @messages = $transformer->$method(@input);
 
     my $vmethod = try { $transformer->can('validate') };
+
+    my @ret;
 
     while (my ($headers, $body) = splice @messages, 0, 2) {
         if ($vmethod) {
@@ -316,8 +317,71 @@ sub transform_and_send {
                 });
             }
         }
+        push @ret,$headers,$body;
+    }
+
+    return @ret;
+}
+
+=method C<send_many>
+
+  $p->send_many(@headers_and_bodies);
+
+Given a list of (header,body) pairs (that is, a list with an even
+number of elements; I<not> a list of arrayrefs!), it will send each
+pair as a message. Useful in combination with L</transform>.
+
+It's not an error for the list to beempty: it just means that nothing
+will be sent.
+
+=cut
+
+sub send_many {
+    my ($self,@messages) = @_;
+
+    while (my ($headers, $body) = splice @messages, 0, 2) {
         $self->send(undef,$headers,$body);
     }
+
+    return;
+}
+
+=method C<transform_and_send>
+
+  $p->transform_and_send($transformer,@data);
+
+Equivalent to:
+
+  $p->send_many($p->transform($transformer,@data));
+
+which is similar to:
+
+  my ($header,$body) = $p->transform($transformer,@data);
+  $p->send(undef,$header,$body);
+
+but it works also when the transformer returns more than one pair.
+
+It's not an error for the transformer to return an empty list: it just
+means that nothing will be sent.
+
+I<< Why would I ever want to use L</transform> and L</send_many> separately? >>
+
+Let's say you are in a transaction, and you want to fail if the
+messages cannot be prepared, but not fail if the prepared messages
+cannot be sent. In this case, you call L</transform> inside the
+transaction, and L</send_many> outside of it.
+
+But yes, in most cases you should really just call
+C<transform_and_send>.
+
+=cut
+
+sub transform_and_send {
+    my ($self,$transformer,@input) = @_;
+
+    my @messages = $self->transform($transformer,@input);
+
+    $self->send_many(@messages);
 
     return;
 }
