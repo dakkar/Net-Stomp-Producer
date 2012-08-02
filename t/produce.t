@@ -209,4 +209,35 @@ subtest 'transformer instance exception' => sub {
         or note p @CallBacks::calls;
 };
 
+subtest 'split transform/send_many' => sub {
+    $p->serializer(sub{encode_json($_[0])});
+
+    my @msgs;
+    cmp_deeply(exception {
+        @msgs=$p->transform('TransformClass',['some','data'])
+    },
+               undef,
+               'transformer class worked');
+    cmp_deeply(exception {
+        $p->send_many(@msgs)
+    },
+               undef,
+               'send_many worked');
+
+    cmp_deeply(\@CallBacks::calls,
+               [
+                   [
+                       'send',
+                       ignore(),
+                       {
+                            body  => '{"me":"TransformClass","data":[["some","data"]]}',
+                            default => 'header',
+                            destination => '/a_class',
+                       },
+                   ],
+               ],
+               'connected & sent')
+        or note p @CallBacks::calls;
+};
+
 done_testing();
