@@ -137,14 +137,23 @@ sub transform {
 }
 
 
+sub send_many {
+    my ($self,@messages) = @_;
+
+    while (my ($headers, $body) = splice @messages, 0, 2) {
+        $self->send(undef,$headers,$body);
+    }
+
+    return;
+}
+
+
 sub transform_and_send {
     my ($self,$transformer,@input) = @_;
 
     my @messages = $self->transform($transformer,@input);
 
-    while (my ($headers, $body) = splice @messages, 0, 2) {
-        $self->send(undef,$headers,$body);
-    }
+    $self->send_many(@messages);
 
     return;
 }
@@ -358,11 +367,26 @@ the C<previous_exception> slot will be undef.
 It's not an error for the transformer to return an empty list: it just
 means that nothing will be returned.
 
+=head2 C<send_many>
+
+  $p->send_many(@headers_and_bodies);
+
+Given a list of (header,body) pairs (that is, a list with an even
+number of elements; I<not> a list of arrayrefs!), it will send each
+pair as a message. Useful in combination with L</transform>.
+
+It's not an error for the list to beempty: it just means that nothing
+will be sent.
+
 =head2 C<transform_and_send>
 
   $p->transform_and_send($transformer,@data);
 
-Similar to:
+Equivalent to:
+
+  $p->send_many($p->transform($transformer,@data));
+
+which is similar to:
 
   my ($header,$body) = $p->transform($transformer,@data);
   $p->send(undef,$header,$body);
@@ -371,6 +395,16 @@ but it works also when the transformer returns more than one pair.
 
 It's not an error for the transformer to return an empty list: it just
 means that nothing will be sent.
+
+I<< Why would I ever want to use L</transform> and L</send_many> separately? >>
+
+Let's say you are in a transaction, and you want to fail if the
+messages cannot be prepared, but not fail if the prepared messages
+cannot be sent. In this case, you call L</transform> inside the
+transaction, and L</send_many> outside of it.
+
+But yes, in most cases you should really just call
+C<transform_and_send>.
 
 =head1 EXAMPLES
 
