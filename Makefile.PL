@@ -14,6 +14,7 @@ my %WriteMakefileArgs = (
   "BUILD_REQUIRES" => {
     "Data::Printer" => 0,
     "JSON::XS" => 0,
+    "Net::Stomp::Frame" => 0,
     "Test::Deep" => 0,
     "Test::Fatal" => 0,
     "Test::More" => 0,
@@ -33,15 +34,16 @@ my %WriteMakefileArgs = (
     "Moose" => 0,
     "Moose::Role" => 0,
     "MooseX::Types::Moose" => 0,
-    "Net::Stomp::MooseHelpers::CanConnect" => 0,
+    "Net::Stomp::MooseHelpers::CanConnect" => "v1.1.0",
     "Net::Stomp::MooseHelpers::Exceptions" => 0,
+    "Net::Stomp::MooseHelpers::ReconnectOnFailure" => 0,
     "StackTrace::Auto" => 0,
     "Throwable" => 0,
     "Try::Tiny" => 0,
     "bytes" => 0,
     "namespace::autoclean" => 0
   },
-  "VERSION" => "0.1_02",
+  "VERSION" => "1.3.1",
   "test" => {
     "TESTS" => "t/*.t"
   }

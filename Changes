@@ -1,4 +1,21 @@
-0.1_02    2012-07-03 13:03:18 Europe/London
+1.3.1     2012-09-03 19:50:01 Europe/London
+- work around complicated VERSION comparison
+
+1.3       2012-09-03 11:36:18 Europe/London
+- compatibility with Net::Stomp::MooseHelpers 1.3
+
+1.2       2012-08-02 15:37:01 Europe/London
+- allow splitting transforming from sending
+
+1.1       2012-07-10 12:31:10 Europe/London
+- use the new ReconnectOnFailure role from Net::Stomp::MooseHelpers
+- calling ->connect() does not warn anymore, it's just a silent no-op
+
+1.001     2012-03-28 12:37:38 Europe/London
+- fix failing tests due to exception handling on perl < 5.14
+
+1.0       2012-03-27 12:36:33 Europe/London
+- first non-devel release
 
 0.1_01    2012-03-14 12:05:49 Europe/London
 - Initial release

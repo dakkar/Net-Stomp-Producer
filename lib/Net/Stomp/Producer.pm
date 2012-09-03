@@ -1,48 +1,20 @@
 package Net::Stomp::Producer;
 {
-  $Net::Stomp::Producer::VERSION = '0.1_02';
+  $Net::Stomp::Producer::VERSION = '1.3.1';
 }
 {
   $Net::Stomp::Producer::DIST = 'Net-Stomp-Producer';
 }
 use Moose;
 use namespace::autoclean;
-with 'Net::Stomp::MooseHelpers::CanConnect';
+with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '1.1.0' };
+with 'Net::Stomp::MooseHelpers::ReconnectOnFailure';
 use MooseX::Types::Moose qw(CodeRef HashRef);
 use Net::Stomp::Producer::Exceptions;
 use Class::Load 'load_class';
 use Try::Tiny;
 
 # ABSTRACT: helper object to send messages via Net::Stomp
-
-
-# we automatically send the C<connect> frame
-around _build_connection => sub {
-    my ($orig,$self,@etc) = @_;
-    my $conn = $self->$orig(@etc);
-    $self->_connect($conn);
-    return $conn;
-};
-
-sub _connect {
-    my ($self,$connection) = @_;
-
-    try {
-        my $server = $self->current_server;
-        my %headers = (
-            %{$self->connect_headers},
-            %{$server->{connect_headers} || {}},
-        );
-        $connection->connect(\%headers);
-    } catch {
-        Net::Stomp::MooseHelpers::Exceptions::Stomp->throw({
-            stomp_error => $_
-        });
-    };
-}
-
-
-sub connect { warn "No-op, Net::Stomp::Producer connects on its own" }
 
 
 has serializer => (
@@ -75,16 +47,20 @@ sub send {
 
     try { $body = $self->serializer->($body) }
     catch {
-        local $@=$_;
+        if (eval {$_[0]->isa('Net::Stomp::Producer::Exceptions::CantSerialize')}) {
+            die $_[0];
+        }
+        my $prev=$_[0];
         Net::Stomp::Producer::Exceptions::CantSerialize->throw({
             message_body => $body,
+            previous_exception => $prev,
         });
     };
 
     my %actual_headers=(
         %{$self->default_headers},
         %$headers,
-        'content-length' => length($body),
+        #'content-length' => length($body),
         body => $body,
     );
 
@@ -95,7 +71,9 @@ sub send {
             unless m{^/};
     }
 
-    $self->connection->send(\%actual_headers);
+    $self->reconnect_on_failure(
+        sub{ $_[0]->connection->send($_[1]) },
+        \%actual_headers);
 
     return;
 }
@@ -121,7 +99,7 @@ sub make_transformer {
 }
 
 
-sub transform_and_send {
+sub transform {
     my ($self,$transformer,@input) = @_;
 
     $transformer=$self->make_transformer($transformer);
@@ -134,6 +112,8 @@ sub transform_and_send {
     my @messages = $transformer->$method(@input);
 
     my $vmethod = try { $transformer->can('validate') };
+
+    my @ret;
 
     while (my ($headers, $body) = splice @messages, 0, 2) {
         if ($vmethod) {
@@ -150,11 +130,36 @@ sub transform_and_send {
                 });
             }
         }
+        push @ret,$headers,$body;
+    }
+
+    return @ret;
+}
+
+
+sub send_many {
+    my ($self,@messages) = @_;
+
+    while (my ($headers, $body) = splice @messages, 0, 2) {
         $self->send(undef,$headers,$body);
     }
 
     return;
 }
+
+
+sub transform_and_send {
+    my ($self,$transformer,@input) = @_;
+
+    my @messages = $self->transform($transformer,@input);
+
+    $self->send_many(@messages);
+
+    return;
+}
+
+__PACKAGE__->meta->make_immutable;
+
 
 1;
 
@@ -169,7 +174,7 @@ Net::Stomp::Producer - helper object to send messages via Net::Stomp
 
 =head1 VERSION
 
-version 0.1_02
+version 1.3.1
 
 =head1 SYNOPSIS
 
@@ -213,7 +218,12 @@ They all send the same message.
 
 This class sends messages via a STOMP connection (see
 L<Net::Stomp::MooseHelpers::CanConnect>). It provides facilities for
-serialisation and validation.
+serialisation and validation. You can have an instance of this class
+as a singleton / global in your process, and use it to send all your
+messages: this is recommended, as it will prevent flooding the broker
+with many connections (each instance would connect independently, and
+if you create many instances per second, the broker or your process
+may run out of file descriptiors and stop working).
 
 You can use it at several levels:
 
@@ -303,12 +313,6 @@ L</make_transformer> instantiates a transformer class.
 
 =head1 METHODS
 
-=head2 C<connect>
-
-Since the connection is set up automatically, this method (usually
-provided by L<Net::Stomp::MooseHelpers::CanConnect>) is overridden to
-be a no-op and warn. Don't call it.
-
 =head2 C<send>
 
   $p->send($destination,\%headers,$body);
@@ -333,9 +337,9 @@ C<new> method, it's invoked with the value of L</transformer_args> to
 obtain an object that is then returned. If the class does not have a
 C<new>, the class name is returned.
 
-=head2 C<transform_and_send>
+=head2 C<transform>
 
-  $p->transform_and_send($transformer,@data);
+  my (@headers_and_bodies) = $p->transform($transformer,@data);
 
 Uses L</make_transformer> to (optionally) instantiate a transformer
 object, then tries to call C<transform> on it. If there is no such
@@ -346,11 +350,10 @@ The transformer is expected to return a list of (header,body) pairs
 (that is, a list with an even number of elements; I<not> a list of
 arrayrefs!).
 
-Each message in the returned list is optionally validated, then sent
-(via the L</send> method).
+Each message in the returned list is optionally validated, then returned.
 
 The optional validation happens if the transformer C<<
-->can('validate') >>. IF it can, that method is called like:
+->can('validate') >>. If it can, that method is called like:
 
   $transformer->validate($header,$body_ref);
 
@@ -362,7 +365,51 @@ L<Net::Stomp::Producer::Exceptions::Invalid> will still be throw, but
 the C<previous_exception> slot will be undef.
 
 It's not an error for the transformer to return an empty list: it just
+means that nothing will be returned.
+
+=head2 C<send_many>
+
+  $p->send_many(@headers_and_bodies);
+
+Given a list of (header,body) pairs (that is, a list with an even
+number of elements; I<not> a list of arrayrefs!), it will send each
+pair as a message. Useful in combination with L</transform>.
+
+It's not an error for the list to beempty: it just means that nothing
+will be sent.
+
+=head2 C<transform_and_send>
+
+  $p->transform_and_send($transformer,@data);
+
+Equivalent to:
+
+  $p->send_many($p->transform($transformer,@data));
+
+which is similar to:
+
+  my ($header,$body) = $p->transform($transformer,@data);
+  $p->send(undef,$header,$body);
+
+but it works also when the transformer returns more than one pair.
+
+It's not an error for the transformer to return an empty list: it just
 means that nothing will be sent.
+
+I<< Why would I ever want to use L</transform> and L</send_many> separately? >>
+
+Let's say you are in a transaction, and you want to fail if the
+messages cannot be prepared, but not fail if the prepared messages
+cannot be sent. In this case, you call L</transform> inside the
+transaction, and L</send_many> outside of it.
+
+But yes, in most cases you should really just call
+C<transform_and_send>.
+
+=head1 EXAMPLES
+
+You can find examples of use in the tests, or at
+https://github.com/dakkar/CatalystX-StompSampleApps
 
 =head1 AUTHOR
 

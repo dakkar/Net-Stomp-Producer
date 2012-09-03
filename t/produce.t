@@ -2,14 +2,14 @@
 use strict;
 use warnings;
 {package CallBacks;
+ use Net::Stomp::Frame;
  our @calls;
  sub new {
      my ($class,@args) = @_;
      push @calls,['new',$class,@args];
      bless {},$class;
  }
- for my $m (qw(connect
-               subscribe unsubscribe
+ for my $m (qw(subscribe unsubscribe
                receive_frame ack
                send send_frame)) {
      no strict 'refs';
@@ -17,6 +17,16 @@ use warnings;
          push @calls,[$m,@_];
          return 1;
      };
+ }
+ sub connect {
+     push @calls,['connect',@_];
+     return Net::Stomp::Frame->new({
+         command => 'CONNECTED',
+         headers => {
+             session => 'ID:foo',
+         },
+         body => '',
+     });
  }
 }
 {package TransformClass;
@@ -99,7 +109,6 @@ subtest 'straight send' => sub {
                        ignore(),
                        {
                             body  => '{"a":"message"}',
-                            'content-length' => 15,
                             default => 'header',
                             destination => '/somewhere',
                        },
@@ -125,7 +134,6 @@ subtest 'serialise & send' => sub {
                        ignore(),
                        {
                             body  => '{"a":"message"}',
-                            'content-length' => 15,
                             default => 'header',
                             destination => '/somewhere',
                        },
@@ -153,7 +161,6 @@ subtest 'transformer class' => sub {
                        ignore(),
                        {
                             body  => '{"me":"TransformClass","data":[["some","data"]]}',
-                            'content-length' => 48,
                             default => 'header',
                             destination => '/a_class',
                        },
@@ -181,7 +188,6 @@ subtest 'transformer instance' => sub {
                        ignore(),
                        {
                             body  => '{"me":"TransformInstance","data":[["some","data"]],"param":"passed in"}',
-                            'content-length' => 71,
                             default => 'header',
                             destination => '/a_instance',
                        },
@@ -210,6 +216,37 @@ subtest 'transformer instance exception' => sub {
     cmp_deeply(\@CallBacks::calls,
                [],
                'nothing sent')
+        or note p @CallBacks::calls;
+};
+
+subtest 'split transform/send_many' => sub {
+    $p->serializer(sub{encode_json($_[0])});
+
+    my @msgs;
+    cmp_deeply(exception {
+        @msgs=$p->transform('TransformClass',['some','data'])
+    },
+               undef,
+               'transformer class worked');
+    cmp_deeply(exception {
+        $p->send_many(@msgs)
+    },
+               undef,
+               'send_many worked');
+
+    cmp_deeply(\@CallBacks::calls,
+               [
+                   [
+                       'send',
+                       ignore(),
+                       {
+                            body  => '{"me":"TransformClass","data":[["some","data"]]}',
+                            default => 'header',
+                            destination => '/a_class',
+                       },
+                   ],
+               ],
+               'connected & sent')
         or note p @CallBacks::calls;
 };
 
