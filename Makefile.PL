@@ -14,6 +14,7 @@ my %WriteMakefileArgs = (
   "BUILD_REQUIRES" => {
     "Data::Printer" => 0,
     "JSON::XS" => 0,
+    "Net::Stomp::Frame" => 0,
     "Test::Deep" => 0,
     "Test::Fatal" => 0,
     "Test::More" => 0,
@@ -42,7 +43,7 @@ my %WriteMakefileArgs = (
     "bytes" => 0,
     "namespace::autoclean" => 0
   },
-  "VERSION" => "1.2",
+  "VERSION" => "1.3",
   "test" => {
     "TESTS" => "t/*.t"
   }

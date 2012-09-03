@@ -1,6 +1,6 @@
 package Net::Stomp::Producer::Exceptions;
 {
-  $Net::Stomp::Producer::Exceptions::VERSION = '1.2';
+  $Net::Stomp::Producer::Exceptions::VERSION = '1.3';
 }
 {
   $Net::Stomp::Producer::Exceptions::DIST = 'Net-Stomp-Producer';
@@ -13,7 +13,7 @@ use Net::Stomp::MooseHelpers::Exceptions;
 {
 package Net::Stomp::Producer::Exceptions::StackTrace;
 {
-  $Net::Stomp::Producer::Exceptions::StackTrace::VERSION = '1.2';
+  $Net::Stomp::Producer::Exceptions::StackTrace::VERSION = '1.3';
 }
 {
   $Net::Stomp::Producer::Exceptions::StackTrace::DIST = 'Net-Stomp-Producer';
@@ -40,7 +40,7 @@ around _build_stack_trace_args => sub {
 {
 package Net::Stomp::Producer::Exceptions::BadMessage;
 {
-  $Net::Stomp::Producer::Exceptions::BadMessage::VERSION = '1.2';
+  $Net::Stomp::Producer::Exceptions::BadMessage::VERSION = '1.3';
 }
 {
   $Net::Stomp::Producer::Exceptions::BadMessage::DIST = 'Net-Stomp-Producer';
@@ -68,7 +68,7 @@ __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 {
 package Net::Stomp::Producer::Exceptions::CantSerialize;
 {
-  $Net::Stomp::Producer::Exceptions::CantSerialize::VERSION = '1.2';
+  $Net::Stomp::Producer::Exceptions::CantSerialize::VERSION = '1.3';
 }
 {
   $Net::Stomp::Producer::Exceptions::CantSerialize::DIST = 'Net-Stomp-Producer';
@@ -81,7 +81,7 @@ __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 {
 package Net::Stomp::Producer::Exceptions::BadTransformer;
 {
-  $Net::Stomp::Producer::Exceptions::BadTransformer::VERSION = '1.2';
+  $Net::Stomp::Producer::Exceptions::BadTransformer::VERSION = '1.3';
 }
 {
   $Net::Stomp::Producer::Exceptions::BadTransformer::DIST = 'Net-Stomp-Producer';
@@ -103,7 +103,7 @@ __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 {
 package Net::Stomp::Producer::Exceptions::Invalid;
 {
-  $Net::Stomp::Producer::Exceptions::Invalid::VERSION = '1.2';
+  $Net::Stomp::Producer::Exceptions::Invalid::VERSION = '1.3';
 }
 {
   $Net::Stomp::Producer::Exceptions::Invalid::DIST = 'Net-Stomp-Producer';
@@ -126,6 +126,7 @@ __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 1;
 
 __END__
+
 =pod
 
 =encoding utf-8
@@ -136,7 +137,7 @@ Net::Stomp::Producer::Exceptions - exception classes for Net::Stomp::Producer
 
 =head1 VERSION
 
-version 1.2
+version 1.3
 
 =head1 DESCRIPTION
 
@@ -183,4 +184,3 @@ This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 
 =cut
-
