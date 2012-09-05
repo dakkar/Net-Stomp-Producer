@@ -1,7 +1,7 @@
 package Net::Stomp::Producer;
 use Moose;
 use namespace::autoclean;
-with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '1.1.0' };
+with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '1.1' };
 with 'Net::Stomp::MooseHelpers::ReconnectOnFailure';
 use MooseX::Types::Moose qw(CodeRef HashRef);
 use Net::Stomp::Producer::Exceptions;
