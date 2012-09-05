@@ -1,6 +1,6 @@
 package Net::Stomp::Producer;
 {
-  $Net::Stomp::Producer::VERSION = '1.3';
+  $Net::Stomp::Producer::VERSION = '1.4';
 }
 {
   $Net::Stomp::Producer::DIST = 'Net-Stomp-Producer';
@@ -117,9 +117,9 @@ sub transform {
 
     while (my ($headers, $body) = splice @messages, 0, 2) {
         if ($vmethod) {
-            my $exception;
-            my $valid = try {
-                $transformer->$vmethod($headers,$body);
+            my ($exception,$valid);
+            try {
+                $valid = $transformer->$vmethod($headers,$body);
             } catch { $exception = $_ };
             if (!$valid) {
                 local $@=$exception;
@@ -175,7 +175,7 @@ Net::Stomp::Producer - helper object to send messages via Net::Stomp
 
 =head1 VERSION
 
-version 1.3
+version 1.4
 
 =head1 SYNOPSIS
 
