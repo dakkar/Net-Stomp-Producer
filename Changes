@@ -1,4 +1,5 @@
 {{$NEXT}}
+- make validation actually work
 
 1.3.1     2012-09-03 19:50:17 Europe/London
 - work around complicated VERSION comparison

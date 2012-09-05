@@ -304,9 +304,9 @@ sub transform {
 
     while (my ($headers, $body) = splice @messages, 0, 2) {
         if ($vmethod) {
-            my $exception;
-            my $valid = try {
-                $transformer->$vmethod($headers,$body);
+            my ($exception,$valid);
+            try {
+                $valid = $transformer->$vmethod($headers,$body);
             } catch { $exception = $_ };
             if (!$valid) {
                 local $@=$exception;
