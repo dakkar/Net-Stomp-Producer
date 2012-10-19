@@ -1,4 +1,6 @@
 {{$NEXT}}
+- avoid localising $@, this may have been the cause of "false
+  exception caught" on some testers machines
 
 1.4       2012-09-05 12:52:12 Europe/London
 - make validation actually work
