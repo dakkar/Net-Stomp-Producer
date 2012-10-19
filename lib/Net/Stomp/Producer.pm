@@ -136,11 +136,11 @@ sub transform {
                 $valid = $transformer->$vmethod($headers,$body);
             } catch { $exception = $_ };
             if (!$valid) {
-                local $@=$exception;
                 Net::Stomp::Producer::Exceptions::Invalid->throw({
                     transformer => $transformer,
                     message_body => $body,
                     message_headers => $headers,
+                    previous_exception => $exception,
                 });
             }
         }
