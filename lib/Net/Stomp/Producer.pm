@@ -7,7 +7,7 @@ package Net::Stomp::Producer;
 }
 use Moose;
 use namespace::autoclean;
-with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '1.1.0' };
+with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '1.1' };
 with 'Net::Stomp::MooseHelpers::ReconnectOnFailure';
 use MooseX::Types::Moose qw(CodeRef HashRef);
 use Net::Stomp::Producer::Exceptions;
@@ -41,7 +41,7 @@ has default_headers => (
 );
 
 
-sub send {
+sub _prepare_message {
     my ($self,$destination,$headers,$body) = @_;
     use bytes;
 
@@ -71,9 +71,23 @@ sub send {
             unless m{^/};
     }
 
+    return \%actual_headers;
+}
+
+sub _really_send {
+    my ($self,$frame) = @_;
+
     $self->reconnect_on_failure(
         sub{ $_[0]->connection->send($_[1]) },
-        \%actual_headers);
+        $frame);
+}
+
+sub send {
+    my ($self,$destination,$headers,$body) = @_;
+
+    my $actual_headers = $self->_prepare_message($destination,$headers,$body);
+
+    $self->_really_send($actual_headers);
 
     return;
 }
@@ -117,9 +131,9 @@ sub transform {
 
     while (my ($headers, $body) = splice @messages, 0, 2) {
         if ($vmethod) {
-            my $exception;
-            my $valid = try {
-                $transformer->$vmethod($headers,$body);
+            my ($exception,$valid);
+            try {
+                $valid = $transformer->$vmethod($headers,$body);
             } catch { $exception = $_ };
             if (!$valid) {
                 local $@=$exception;

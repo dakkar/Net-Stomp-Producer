@@ -5,6 +5,7 @@ META.yml
 Makefile.PL
 dist.ini
 lib/Net/Stomp/Producer.pm
+lib/Net/Stomp/Producer/Buffered.pm
 lib/Net/Stomp/Producer/Exceptions.pm
 t/produce.t
 t/release-no-tabs.t

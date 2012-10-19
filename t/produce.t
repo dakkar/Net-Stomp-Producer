@@ -48,6 +48,20 @@ use warnings;
          { me => ref($me), param => $me->param, data => \@data };
  }
 }
+{package TransformAndValidate;
+
+ sub validate {
+     my ($self,$headers,$data) = @_;
+     return 1 if $data->{ok};
+     die "bad input\n";
+ }
+
+ sub transform {
+     my ($me,$data) = @_;
+     return { destination => 'validating' },
+         $data,
+ }
+}
 
 package main;
 use Test::More;
@@ -248,6 +262,30 @@ subtest 'split transform/send_many' => sub {
                ],
                'connected & sent')
         or note p @CallBacks::calls;
+};
+
+subtest 'validation ok' => sub {
+    @CallBacks::calls=();
+
+    $p->serializer(sub{encode_json($_[0])});
+
+    cmp_deeply(exception {
+        $p->transform_and_send('TransformAndValidate',{ok=>1});
+    },
+               undef,
+               'validation passed');
+
+    cmp_deeply(exception {
+        $p->transform_and_send('TransformAndValidate',{ok=>0});
+    },
+               all(
+                   isa('Net::Stomp::Producer::Exceptions::Invalid'),
+                   methods(
+                       reason => re(qr{\bvalidation\b}),
+                       previous_exception => "bad input\n",
+                   ),
+               ),
+               'validation falied as expected');
 };
 
 done_testing();
