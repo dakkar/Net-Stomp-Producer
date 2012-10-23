@@ -1,4 +1,5 @@
 {{$NEXT}}
+- prevent transformers from easily clobbering ->transformer_args
 
 1.5       2012-10-19 17:02:22 Europe/London
 - avoid localising $@, this may have been the cause of "false

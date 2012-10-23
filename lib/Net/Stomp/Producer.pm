@@ -249,7 +249,11 @@ sub make_transformer {
 
     load_class($transformer);
     if ($transformer->can('new')) {
-        return $transformer->new($self->transformer_args);
+        # shallow clone, to make it less likely that a transformer
+        # will clobber our args
+        return $transformer->new(
+            { %{$self->transformer_args} }
+        );
     }
     return $transformer;
 }
