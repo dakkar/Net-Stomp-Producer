@@ -1,6 +1,6 @@
 package Net::Stomp::Producer;
 {
-  $Net::Stomp::Producer::VERSION = '1.4';
+  $Net::Stomp::Producer::VERSION = '1.6';
 }
 {
   $Net::Stomp::Producer::DIST = 'Net-Stomp-Producer';
@@ -93,7 +93,11 @@ sub make_transformer {
 
     load_class($transformer);
     if ($transformer->can('new')) {
-        return $transformer->new($self->transformer_args);
+        # shallow clone, to make it less likely that a transformer
+        # will clobber our args
+        return $transformer->new(
+            { %{$self->transformer_args} }
+        );
     }
     return $transformer;
 }
@@ -122,11 +126,11 @@ sub transform {
                 $valid = $transformer->$vmethod($headers,$body);
             } catch { $exception = $_ };
             if (!$valid) {
-                local $@=$exception;
                 Net::Stomp::Producer::Exceptions::Invalid->throw({
                     transformer => $transformer,
                     message_body => $body,
                     message_headers => $headers,
+                    previous_exception => $exception,
                 });
             }
         }
@@ -175,7 +179,7 @@ Net::Stomp::Producer - helper object to send messages via Net::Stomp
 
 =head1 VERSION
 
-version 1.4
+version 1.6
 
 =head1 SYNOPSIS
 

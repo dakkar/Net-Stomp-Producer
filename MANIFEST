@@ -6,6 +6,7 @@ Makefile.PL
 dist.ini
 lib/Net/Stomp/Producer.pm
 lib/Net/Stomp/Producer/Exceptions.pm
+t/prevent-args-clobbering.t
 t/produce.t
 t/release-no-tabs.t
 t/release-pod-coverage.t
