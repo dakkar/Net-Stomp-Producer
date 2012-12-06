@@ -132,10 +132,12 @@ subtest 'straight send' => sub {
         or note p @CallBacks::calls;
 };
 
+my $json = JSON::XS->new->canonical(1)->pretty(0);
+
 subtest 'serialise & send' => sub {
     @CallBacks::calls=();
 
-    $p->serializer(sub{encode_json($_[0])});
+    $p->serializer(sub{$json->encode($_[0])});
 
     cmp_deeply(exception { $p->send('somewhere',{},{a=>'message'}) },
                undef,
@@ -160,7 +162,7 @@ subtest 'serialise & send' => sub {
 subtest 'transformer class' => sub {
     @CallBacks::calls=();
 
-    $p->serializer(sub{encode_json($_[0])});
+    $p->serializer(sub{$json->encode($_[0])});
 
     cmp_deeply(exception {
         $p->transform_and_send('TransformClass',['some','data'])
@@ -174,7 +176,7 @@ subtest 'transformer class' => sub {
                        'send',
                        ignore(),
                        {
-                            body  => '{"me":"TransformClass","data":[["some","data"]]}',
+                            body  => '{"data":[["some","data"]],"me":"TransformClass"}',
                             default => 'header',
                             destination => '/a_class',
                        },
@@ -201,7 +203,7 @@ subtest 'transformer instance' => sub {
                        'send',
                        ignore(),
                        {
-                            body  => '{"me":"TransformInstance","data":[["some","data"]],"param":"passed in"}',
+                            body  => '{"data":[["some","data"]],"me":"TransformInstance","param":"passed in"}',
                             default => 'header',
                             destination => '/a_instance',
                        },
@@ -234,7 +236,7 @@ subtest 'transformer instance exception' => sub {
 };
 
 subtest 'split transform/send_many' => sub {
-    $p->serializer(sub{encode_json($_[0])});
+    $p->serializer(sub{$json->encode($_[0])});
 
     my @msgs;
     cmp_deeply(exception {
@@ -254,7 +256,7 @@ subtest 'split transform/send_many' => sub {
                        'send',
                        ignore(),
                        {
-                            body  => '{"me":"TransformClass","data":[["some","data"]]}',
+                            body  => '{"data":[["some","data"]],"me":"TransformClass"}',
                             default => 'header',
                             destination => '/a_class',
                        },
@@ -267,7 +269,7 @@ subtest 'split transform/send_many' => sub {
 subtest 'validation ok' => sub {
     @CallBacks::calls=();
 
-    $p->serializer(sub{encode_json($_[0])});
+    $p->serializer(sub{$json->encode($_[0])});
 
     cmp_deeply(exception {
         $p->transform_and_send('TransformAndValidate',{ok=>1});
