@@ -1,6 +1,8 @@
 package Net::Stomp::Producer::Buffered;
 use Moose;
 extends 'Net::Stomp::Producer';
+use MooseX::Types::Common::Numeric 'PositiveOrZeroInt';
+use Try::Tiny;
 
 has buffered_frames => (
     is => 'ro',
@@ -16,7 +18,7 @@ has buffered_frames => (
 
 has buffering => (
     is => 'ro',
-    isa => 'Int',
+    isa => PositiveOrZeroInt,
     traits => ['Counter'],
     default => 0,
     handles => {
@@ -56,6 +58,24 @@ after stop_buffering => sub {
 
     $self->send_buffered unless $self->buffering;
 };
+
+sub buffered_do {
+    my ($self,$code) = @_;
+
+    $self->start_buffering;
+    my @saved_buffer = $self->all_frames;
+    try {
+        $code->();
+    }
+    catch {
+        $self->clear_frame_buffer;
+        $self->stop_buffering;
+        $self->add_frame_to_buffer(@saved_buffer);
+        die $_;
+    };
+    $self->stop_buffering;
+    return;
+}
 
 __PACKAGE__->meta->make_immutable;
 
