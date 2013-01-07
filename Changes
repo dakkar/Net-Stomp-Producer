@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+1.8       2013-01-07 16:36:32 Europe/London
 - Net::Stomp::Producer::Transactional for transaction-like behaviour
   (begin/commit/rollback, fully re-entrant)
 
