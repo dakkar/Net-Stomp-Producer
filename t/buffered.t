@@ -63,51 +63,45 @@ subtest 'direct send' => sub {
     assert_message_sent('11','direct send');
 };
 
-subtest 'buffered send' => sub {
+subtest 'transactional send' => sub {
     $p->txn_begin();
     send_message('21');
-    assert_nothing_sent('nothing sent when buffering');
-
-    $p->_send_buffered();
-    assert_message_sent('21','sent from buffer');
+    assert_nothing_sent('nothing sent when in a transaction');
 
     $p->txn_commit();
-    assert_nothing_sent('nothing sent when buffering stopped and buffer empty');
-};
+    assert_message_sent('21','sent on commit');
 
-subtest 'switching between buffered and not' => sub {
-    send_message('31');
-    assert_message_sent('31','sent directly');
+    my $e = exception { $p->txn_commit() };
+    isa_ok($e,'Net::Stomp::Producer::Exceptions::Transactional',
+           q{can't commit without a transaction}); #'});
 
     $p->txn_begin();
-    send_message('32');
-    assert_nothing_sent('nothing sent when buffering');
+    send_message('21');
+    $p->txn_rollback();
+    assert_nothing_sent('nothing sent on rollback');
 
-    $p->txn_commit();
-    assert_message_sent('32','buffer sent when switching buffering off');
-
-    send_message('33');
-    assert_message_sent('33','buffering off still means send directly');
+    send_message('23');
+    assert_message_sent('23','no transaction still means send directly');
 };
 
-subtest 'start/stop buffering is re-entrant' => sub {
+subtest 'transactions are re-entrant' => sub {
     $p->txn_begin;
     send_message('41');
-    assert_nothing_sent('nothing sent when buffering');
+    assert_nothing_sent('nothing sent when in a transaction');
 
     $p->txn_begin;
     send_message('42');
-    assert_nothing_sent('nothing sent when buffering twice');
+    assert_nothing_sent('nothing sent when in 2 transactions');
 
     $p->txn_commit;
-    assert_nothing_sent('start twice, stop once: nothing sent');
+    assert_nothing_sent('begin twice, commit once: nothing sent');
 
     $p->txn_commit;
-    assert_message_sent('41','42','all messages sent when stopped as many times as started');
+    assert_message_sent('41','42','all messages sent when commited as many times as begun');
 
-    my $e = exception { $p->txn_commit };
-    like($e,qr{integer greater than or equal to zero},
-         q{can't decrement below 0});
+    my $e = exception { $p->txn_commit() };
+    isa_ok($e,'Net::Stomp::Producer::Exceptions::Transactional',
+           q{can't commit without a transaction}); #'});
 };
 
 subtest 'txn_do' => sub {
@@ -148,15 +142,6 @@ subtest 'txn_do' => sub {
         assert_message_sent('53','55','inner block rolled back');
     };
 
-    subtest '_send_buffered' => sub {
-        my $e = exception {
-            $p->txn_do(sub {
-                                $p->_send_buffered();
-                            });
-        };
-        isa_ok($e,'Net::Stomp::Producer::Exceptions::Buffering',
-               q{can't call _send_buffered inside buffering_do});
-    };
 };
 
 done_testing();

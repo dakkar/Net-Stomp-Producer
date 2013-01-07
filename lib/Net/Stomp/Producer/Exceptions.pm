@@ -34,14 +34,15 @@ attributes: C<transformer>, C<reason>.
 
 Thrown when validation fails.
 
-=item C<Net::Stomp::Producer::Exceptions::Buffering>
+=item C<Net::Stomp::Producer::Exceptions::Transactional>
 
 Attributes: C<stack_trace>.
 
 Thrown when you call
-L<send_buffered|Net::Stomp::Producer::Buffered/send_buffered> from
-within L<buffered_do|Net::Stomp::Producer::Buffered/buffered_do>. See
-L<Net::Stomp::Producer::Buffered> for details.
+L<txn_commit|Net::Stomp::Producer::Transactional/txn_commit> or
+L<txn_rollback|Net::Stomp::Producer::Transactional/txn_rollback> without a
+corresponding L<txn_begin|Net::Stomp::Producer::Transactional/txn_begin>.
+See L<Net::Stomp::Producer::Transactional> for details.
 
 =back
 
@@ -131,7 +132,7 @@ __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 }
 
 {
-package Net::Stomp::Producer::Exceptions::Buffering;
+package Net::Stomp::Producer::Exceptions::Transactional;
 use Moose;with 'Throwable',
     'Net::Stomp::MooseHelpers::Exceptions::Stringy',
     'Net::Stomp::Producer::Exceptions::StackTrace';
@@ -139,7 +140,7 @@ use namespace::autoclean;
 
 sub as_string {
     my ($self) = @_;
-    sprintf qq{"send_buffered" was called inside a "buffered_do", this does not make sense\n%s},
+    sprintf qq{not inside a transaction\n%s},
         $self->stack_trace->as_string;
 }
 __PACKAGE__->meta->make_immutable(inline_constructor=>0);

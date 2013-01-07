@@ -48,74 +48,128 @@ connection. They will be sent when you call L</txn_commit>,
 
 There is also a L</txn_do> method, which takes a coderef and executes
 it between a L</txn_begin> and a L</txn_commit>. If the coderef throws
-an exception, the buffer is cleared and no message is sent.
+an exception, the messages are forgotten.
+
+=method C<in_transaction>
+
+If true, we are inside a "transaction". You can change this with
+L</txn_begin>, L</txn_commit> and L</txn_rollback>.
 
 =cut
 
-has _buffered_frames => (
+has _transactions => (
     is => 'ro',
-    isa => 'ArrayRef',
+    isa => 'ArrayRef[ArrayRef]',
     default => sub { [] },
     traits => [ 'Array' ],
     handles => {
-        _add_frame_to_buffer => 'push',
-        _all_frames => 'elements',
-        _clear_frame_buffer => 'clear',
+        in_transaction => 'count',
+        _start_transaction => 'push',
+        _drop_transaction => 'pop',
+        _all_transactions => 'elements',
+        _clear_transactions => 'clear',
     },
 );
 
-=attr C<in_transaction>
+sub _current_transaction {
+    my ($self) = @_;
 
-If 0 (the default), we're not inside a "transaction". You can change
-this with L</txn_begin>, L</txn_commit> and L</txn_rollback>.
+    Net::Stomp::Producer::Exceptions::Transactional->throw()
+          unless $self->in_transaction;
+
+    return $self->_transactions->[-1];
+}
+
+sub _add_frames_to_transaction {
+    my ($self,@frames) = @_;
+
+    Net::Stomp::Producer::Exceptions::Transactional->throw()
+          unless $self->in_transaction;
+
+    push @{$self->_current_transaction},@frames;
+
+    return;
+}
 
 =method C<txn_begin>
 
-Start buffering (by incrementing L</in_transaction>), so that
-subsequent calls to C<send> or C<transform_and_send> won't really send
-messages to the connection, but keep them in memory.
+Start a transaction, so that subsequent calls to C<send> or
+C<transform_and_send> won't really send messages to the connection,
+but keep them in memory.
 
-You can call this method multiple times; the buffering will stop (and
+You can call this method multiple times; the transaction will end (and
 messages will be sent) when you call L</txn_commit> as many times as
 you called C<txn_begin>.
 
-Calling L</txn_rollback> will ...
-
-=method C<txn_commit>
-
-Decrement L</in_transaction>. If it's now 0, send all buffered messages.
-
-If you call this method B<more times> than you called L</txn_begin>,
-you'll get an exception (from
-L<MooseX::Types::Common::Numeric::PositiveOrZeroInt|MooseX::Types::Common::Numeric/PositiveOrZeroInt>).
+Calling L</txn_rollback> will destroy the messages sent since the most
+recent C<txn_begin>. In other words, transactions are properly
+re-entrant.
 
 =cut
 
-has in_transaction => (
-    is => 'ro',
-    isa => PositiveOrZeroInt,
-    traits => ['Counter'],
-    default => 0,
-    handles => {
-        txn_begin => 'inc',
-        txn_commit => 'dec',
-    },
-);
+sub txn_begin {
+    my ($self) = @_;
 
-has _inside_txn_do => (
-    is => 'ro',
-    isa => PositiveOrZeroInt,
-    traits => ['Counter'],
-    default => 0,
-    handles => {
-        _start_txn_do => 'inc',
-        _stop_txn_do => 'dec',
-    },
-);
+    $self->_start_transaction([]);
+
+    return;
+}
+
+=method C<txn_commit>
+
+Commit the current transaction. If this was the outer-most
+transaction, send all buffered messages.
+
+If you call this method outside of a transaction, you'll get a
+L<Net::Stomp::Producer::Exceptions::Transactional> exception.
+
+=cut
+
+sub txn_commit {
+    my ($self) = @_;
+
+    Net::Stomp::Producer::Exceptions::Transactional->throw()
+          unless $self->in_transaction;
+
+    my $messages = $self->_current_transaction;
+    $self->_drop_transaction;
+    if ($self->in_transaction) {
+        # commit to the outer transaction
+        $self->_add_frames_to_transaction(@$messages);
+    }
+    else {
+        for my $f (@$messages) {
+            $self->_really_send($f);
+        }
+    }
+
+    return;
+}
+
+=method C<txn_rollback>
+
+Roll back the current transaction, destroying all messages "sent"
+inside it.
+
+If you call this method outside of a transaction, you'll get a
+L<Net::Stomp::Producer::Exceptions::Transactional> exception.
+
+=cut
+
+sub txn_rollback {
+    my ($self) = @_;
+
+    Net::Stomp::Producer::Exceptions::Transactional->throw()
+          unless $self->in_transaction;
+
+    $self->_drop_transaction;
+
+    return;
+}
 
 =method C<send>
 
-If L</in_transaction> is 0, send the message normally; otherwise, add
+If not L</in_transaction>, send the message normally; otherwise, add
 it to the in-memory buffer. See L<the base
 method|Net::Stomp::Producer/send> for more details.
 
@@ -127,34 +181,13 @@ override send => sub {
     my $actual_headers = $self->_prepare_message($destination,$headers,$body);
 
     if ($self->in_transaction) {
-        $self->_add_frame_to_buffer($actual_headers);
+        $self->_add_frames_to_transaction($actual_headers);
     }
     else {
         $self->_really_send($actual_headers);
     }
 
     return;
-};
-
-sub _send_buffered {
-    my ($self) = @_;
-
-    if ($self->_inside_txn_do) {
-        Net::Stomp::Producer::Exceptions::Buffering->throw();
-    }
-
-    for my $f ($self->_all_frames) {
-        $self->_really_send($f);
-    }
-    $self->_clear_frame_buffer;
-
-    return;
-}
-
-after txn_commit => sub {
-    my ($self) = @_;
-
-    $self->_send_buffered unless $self->in_transaction;
 };
 
 =method C<txn_do>
@@ -166,8 +199,8 @@ after txn_commit => sub {
 This method executes the given coderef between a L</txn_begin> and a
 L</txn_commit>.
 
-If the coderef throws an exception, the buffer will be cleared,
-L</txn_commit> will be called, and the exception re-thrown.
+If the coderef throws an exception, L</txn_rollback> will be called,
+and the exception re-thrown.
 
 This method is re-entrant:
 
@@ -190,19 +223,13 @@ sub txn_do {
     my ($self,$code) = @_;
 
     $self->txn_begin;
-    $self->_start_txn_do;
-    my @saved_buffer = $self->_all_frames;
     try {
         $code->();
     }
     catch {
-        $self->_clear_frame_buffer;
-        $self->_stop_txn_do;
-        $self->txn_commit;
-        $self->_add_frame_to_buffer(@saved_buffer);
+        $self->txn_rollback;
         die $_;
     };
-    $self->_stop_txn_do;
     $self->txn_commit;
     return;
 }
