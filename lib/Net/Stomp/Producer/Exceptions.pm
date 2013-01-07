@@ -121,4 +121,19 @@ sub as_string {
 __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 }
 
+{
+package Net::Stomp::Producer::Exceptions::Buffering;
+use Moose;with 'Throwable',
+    'Net::Stomp::MooseHelpers::Exceptions::Stringy',
+    'Net::Stomp::Producer::Exceptions::StackTrace';
+use namespace::autoclean;
+
+sub as_string {
+    my ($self) = @_;
+    sprintf qq{"send_buffered" was called inside a "buffered_do", this does not make sense\n%s},
+        $self->stack_trace->as_string;
+}
+__PACKAGE__->meta->make_immutable(inline_constructor=>0);
+}
+
 1;

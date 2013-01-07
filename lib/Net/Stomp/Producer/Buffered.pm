@@ -1,6 +1,7 @@
 package Net::Stomp::Producer::Buffered;
 use Moose;
 extends 'Net::Stomp::Producer';
+use Net::Stomp::Producer::Exceptions;
 use MooseX::Types::Common::Numeric 'PositiveOrZeroInt';
 use Try::Tiny;
 
@@ -27,6 +28,17 @@ has buffering => (
     },
 );
 
+has _inside_buffered_do => (
+    is => 'ro',
+    isa => PositiveOrZeroInt,
+    traits => ['Counter'],
+    default => 0,
+    handles => {
+        _start_buffered_do => 'inc',
+        _stop_buffered_do => 'dec',
+    },
+);
+
 override send => sub {
     my ($self,$destination,$headers,$body) = @_;
 
@@ -44,6 +56,10 @@ override send => sub {
 
 sub send_buffered {
     my ($self) = @_;
+
+    if ($self->_inside_buffered_do) {
+        Net::Stomp::Producer::Exceptions::Buffering->throw();
+    }
 
     for my $f ($self->all_frames) {
         $self->_really_send($f);
@@ -63,16 +79,19 @@ sub buffered_do {
     my ($self,$code) = @_;
 
     $self->start_buffering;
+    $self->_start_buffered_do;
     my @saved_buffer = $self->all_frames;
     try {
         $code->();
     }
     catch {
         $self->clear_frame_buffer;
+        $self->_stop_buffered_do;
         $self->stop_buffering;
         $self->add_frame_to_buffer(@saved_buffer);
         die $_;
     };
+    $self->_stop_buffered_do;
     $self->stop_buffering;
     return;
 }

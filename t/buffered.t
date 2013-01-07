@@ -70,10 +70,12 @@ subtest 'buffered send' => sub {
 
     $p->send_buffered();
     assert_message_sent('21','sent from buffer');
+
+    $p->stop_buffering();
+    assert_nothing_sent('nothing sent when buffering stopped and buffer empty');
 };
 
 subtest 'switching between buffered and not' => sub {
-    $p->stop_buffering();
     send_message('31');
     assert_message_sent('31','sent directly');
 
@@ -140,6 +142,16 @@ subtest 'buffered_do' => sub {
         };
         is($e,undef,'exception caught inside our code');
         assert_message_sent('53','55','inner block rolled back');
+    };
+
+    subtest 'send_buffered' => sub {
+        my $e = exception {
+            $p->buffered_do(sub {
+                                $p->send_buffered();
+                            });
+        };
+        isa_ok($e,'Net::Stomp::Producer::Exceptions::Buffering',
+               q{can't call send_buffered inside buffering_do});
     };
 };
 
