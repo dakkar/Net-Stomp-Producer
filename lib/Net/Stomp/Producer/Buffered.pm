@@ -15,10 +15,14 @@ has buffered_frames => (
 );
 
 has buffering => (
-    is => 'rw',
-    isa => 'Bool',
+    is => 'ro',
+    isa => 'Int',
+    traits => ['Counter'],
     default => 0,
-    trigger => \&send_buffered,
+    handles => {
+        start_buffering => 'inc',
+        stop_buffering => 'dec',
+    },
 );
 
 override send => sub {
@@ -46,6 +50,12 @@ sub send_buffered {
 
     return;
 }
+
+after stop_buffering => sub {
+    my ($self) = @_;
+
+    $self->send_buffered unless $self->buffering;
+};
 
 __PACKAGE__->meta->make_immutable;
 

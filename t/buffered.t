@@ -16,115 +16,86 @@ my $p=Net::Stomp::Producer::Buffered->new({
     } ],
 });
 
-subtest 'direct send' => sub {
-    @Stomp_LogCalls::calls=();
-
-    $p->send('/queue/foo',{},'123');
+sub assert_message_sent {
+    my $diag = pop;
+    my @bodies = @_;
 
     cmp_deeply(\@Stomp_LogCalls::calls,
                superbagof(
-                   [
+                   map { [
                        'send',
                        ignore(),
                        {
-                           body  => '123',
+                           body  => $_,
                            destination => '/queue/foo',
                        },
-                   ],
+                   ] } @bodies
                ),
-               'direct send')
+               $diag)
         or note p @Stomp_LogCalls::calls;
+
+    @Stomp_LogCalls::calls=();
+}
+
+sub assert_nothing_sent {
+    my ($diag) = @_;
+
+    cmp_deeply(\@Stomp_LogCalls::calls,
+               [],
+               $diag)
+        or note p @Stomp_LogCalls::calls;
+}
+
+sub send_message {
+    my ($body) = @_;
+
+    $p->send('/queue/foo',{},$body);
+}
+
+subtest 'direct send' => sub {
+    send_message('11');
+    assert_message_sent('11','direct send');
 };
 
 subtest 'buffered send' => sub {
-    @Stomp_LogCalls::calls=();
-
-    $p->buffering(1);
-
-    $p->send('/queue/foo',{},'123');
-
-    cmp_deeply(\@Stomp_LogCalls::calls,
-               [],
-               'nothing sent when buffering')
-        or note p @Stomp_LogCalls::calls;
+    $p->start_buffering();
+    send_message('21');
+    assert_nothing_sent('nothing sent when buffering');
 
     $p->send_buffered();
-
-    cmp_deeply(\@Stomp_LogCalls::calls,
-               superbagof(
-                   [
-                       'send',
-                       ignore(),
-                       {
-                           body  => '123',
-                           destination => '/queue/foo',
-                       },
-                   ],
-               ),
-               'sent from buffer')
-        or note p @Stomp_LogCalls::calls;
+    assert_message_sent('21','sent from buffer');
 };
 
 subtest 'switching between buffered and not' => sub {
-    @Stomp_LogCalls::calls=();
+    $p->stop_buffering();
+    send_message('31');
+    assert_message_sent('31','sent directly');
 
-    $p->buffering(0);
-    $p->send('/queue/foo',{},'123');
-    cmp_deeply(\@Stomp_LogCalls::calls,
-               superbagof(
-                   [
-                       'send',
-                       ignore(),
-                       {
-                           body  => '123',
-                           destination => '/queue/foo',
-                       },
-                   ],
-               ),
-               'sent directly')
-        or note p @Stomp_LogCalls::calls;
+    $p->start_buffering();
+    send_message('32');
+    assert_nothing_sent('nothing sent when buffering');
 
-    @Stomp_LogCalls::calls=();
+    $p->stop_buffering();
+    assert_message_sent('32','buffer sent when switching buffering off');
 
-    $p->buffering(1);
-    $p->send('/queue/foo',{},'124');
+    send_message('33');
+    assert_message_sent('33','buffering off still means send directly');
+};
 
-    cmp_deeply(\@Stomp_LogCalls::calls,
-               [],
-               'nothing sent when buffering')
-        or note p @Stomp_LogCalls::calls;
+subtest 'start/stop buffering is re-entrant' => sub {
+    $p->start_buffering;
+    send_message('41');
+    assert_nothing_sent('nothing sent when buffering');
 
-    $p->buffering(0);
-    cmp_deeply(\@Stomp_LogCalls::calls,
-               superbagof(
-                   [
-                       'send',
-                       ignore(),
-                       {
-                           body  => '124',
-                           destination => '/queue/foo',
-                       },
-                   ],
-               ),
-               'buffer sent when switching buffering off')
-        or note p @Stomp_LogCalls::calls;
+    $p->start_buffering;
+    send_message('42');
+    assert_nothing_sent('nothing sent when buffering twice');
 
-    @Stomp_LogCalls::calls=();
+    $p->stop_buffering;
+    assert_nothing_sent('start twice, stop once: nothing sent');
 
-    $p->send('/queue/foo',{},'125');
-    cmp_deeply(\@Stomp_LogCalls::calls,
-               superbagof(
-                   [
-                       'send',
-                       ignore(),
-                       {
-                           body  => '125',
-                           destination => '/queue/foo',
-                       },
-                   ],
-               ),
-               'buffering off still means send directly')
-        or note p @Stomp_LogCalls::calls;
+    $p->stop_buffering;
+    assert_message_sent('41','42','all messages sent when stopped as many times as started');
 };
 
 done_testing();
