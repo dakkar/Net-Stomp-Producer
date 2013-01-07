@@ -34,6 +34,15 @@ attributes: C<transformer>, C<reason>.
 
 Thrown when validation fails.
 
+=item C<Net::Stomp::Producer::Exceptions::Buffering>
+
+Attributes: C<stack_trace>.
+
+Thrown when you call
+L<send_buffered|Net::Stomp::Producer::Buffered/send_buffered> from
+within L<buffered_do|Net::Stomp::Producer::Buffered/buffered_do>. See
+L<Net::Stomp::Producer::Buffered> for details.
+
 =back
 
 =cut

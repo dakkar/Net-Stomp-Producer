@@ -104,6 +104,10 @@ subtest 'start/stop buffering is re-entrant' => sub {
 
     $p->stop_buffering;
     assert_message_sent('41','42','all messages sent when stopped as many times as started');
+
+    my $e = exception { $p->stop_buffering };
+    like($e,qr{integer greater than or equal to zero},
+         q{can't decrement below 0});
 };
 
 subtest 'buffered_do' => sub {
