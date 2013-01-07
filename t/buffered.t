@@ -7,9 +7,9 @@ use Test::More;
 use Test::Deep;
 use Test::Fatal;
 use Data::Printer;
-use Net::Stomp::Producer::Buffered;
+use Net::Stomp::Producer::Transactional;
 
-my $p=Net::Stomp::Producer::Buffered->new({
+my $p=Net::Stomp::Producer::Transactional->new({
     connection_builder => sub { return Stomp_LogCalls->new(@_) },
     servers => [ {
         hostname => 'test-host', port => 9999,
@@ -64,14 +64,14 @@ subtest 'direct send' => sub {
 };
 
 subtest 'buffered send' => sub {
-    $p->start_buffering();
+    $p->txn_begin();
     send_message('21');
     assert_nothing_sent('nothing sent when buffering');
 
-    $p->send_buffered();
+    $p->_send_buffered();
     assert_message_sent('21','sent from buffer');
 
-    $p->stop_buffering();
+    $p->txn_commit();
     assert_nothing_sent('nothing sent when buffering stopped and buffer empty');
 };
 
@@ -79,11 +79,11 @@ subtest 'switching between buffered and not' => sub {
     send_message('31');
     assert_message_sent('31','sent directly');
 
-    $p->start_buffering();
+    $p->txn_begin();
     send_message('32');
     assert_nothing_sent('nothing sent when buffering');
 
-    $p->stop_buffering();
+    $p->txn_commit();
     assert_message_sent('32','buffer sent when switching buffering off');
 
     send_message('33');
@@ -91,38 +91,38 @@ subtest 'switching between buffered and not' => sub {
 };
 
 subtest 'start/stop buffering is re-entrant' => sub {
-    $p->start_buffering;
+    $p->txn_begin;
     send_message('41');
     assert_nothing_sent('nothing sent when buffering');
 
-    $p->start_buffering;
+    $p->txn_begin;
     send_message('42');
     assert_nothing_sent('nothing sent when buffering twice');
 
-    $p->stop_buffering;
+    $p->txn_commit;
     assert_nothing_sent('start twice, stop once: nothing sent');
 
-    $p->stop_buffering;
+    $p->txn_commit;
     assert_message_sent('41','42','all messages sent when stopped as many times as started');
 
-    my $e = exception { $p->stop_buffering };
+    my $e = exception { $p->txn_commit };
     like($e,qr{integer greater than or equal to zero},
          q{can't decrement below 0});
 };
 
-subtest 'buffered_do' => sub {
+subtest 'txn_do' => sub {
 
     subtest 'simple' => sub {
-        $p->buffered_do(sub {
+        $p->txn_do(sub {
                             send_message('51');
-                            assert_nothing_sent('nothing sent inside buffered_do');
+                            assert_nothing_sent('nothing sent inside txn_do');
                         });
-        assert_message_sent('51','message sent at the end of buffered_do');
+        assert_message_sent('51','message sent at the end of txn_do');
     };
 
     subtest 'exception handling' => sub {
         my $e = exception {
-            $p->buffered_do(sub {
+            $p->txn_do(sub {
                                 send_message('52');
                                 die "boom\n";
                             });
@@ -133,10 +133,10 @@ subtest 'buffered_do' => sub {
 
     subtest 'nested exception handling' => sub {
         my $e = exception {
-            $p->buffered_do(sub {
+            $p->txn_do(sub {
                                 send_message('53');
                                 eval {
-                                    $p->buffered_do(sub {
+                                    $p->txn_do(sub {
                                                         send_message('54');
                                                         die "boom\n";
                                                     });
@@ -148,14 +148,14 @@ subtest 'buffered_do' => sub {
         assert_message_sent('53','55','inner block rolled back');
     };
 
-    subtest 'send_buffered' => sub {
+    subtest '_send_buffered' => sub {
         my $e = exception {
-            $p->buffered_do(sub {
-                                $p->send_buffered();
+            $p->txn_do(sub {
+                                $p->_send_buffered();
                             });
         };
         isa_ok($e,'Net::Stomp::Producer::Exceptions::Buffering',
-               q{can't call send_buffered inside buffering_do});
+               q{can't call _send_buffered inside buffering_do});
     };
 };
 
