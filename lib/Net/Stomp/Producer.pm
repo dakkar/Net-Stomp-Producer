@@ -1,6 +1,6 @@
 package Net::Stomp::Producer;
 {
-  $Net::Stomp::Producer::VERSION = '1.7';
+  $Net::Stomp::Producer::VERSION = '1.8';
 }
 {
   $Net::Stomp::Producer::DIST = 'Net-Stomp-Producer';
@@ -41,7 +41,7 @@ has default_headers => (
 );
 
 
-sub send {
+sub _prepare_message {
     my ($self,$destination,$headers,$body) = @_;
     use bytes;
 
@@ -71,9 +71,23 @@ sub send {
             unless m{^/};
     }
 
+    return \%actual_headers;
+}
+
+sub _really_send {
+    my ($self,$frame) = @_;
+
     $self->reconnect_on_failure(
         sub{ $_[0]->connection->send($_[1]) },
-        \%actual_headers);
+        $frame);
+}
+
+sub send {
+    my ($self,$destination,$headers,$body) = @_;
+
+    my $actual_headers = $self->_prepare_message($destination,$headers,$body);
+
+    $self->_really_send($actual_headers);
 
     return;
 }
@@ -179,7 +193,7 @@ Net::Stomp::Producer - helper object to send messages via Net::Stomp
 
 =head1 VERSION
 
-version 1.7
+version 1.8
 
 =head1 SYNOPSIS
 

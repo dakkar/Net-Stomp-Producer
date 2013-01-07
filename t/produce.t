@@ -1,34 +1,9 @@
 #!perl
 use strict;
 use warnings;
-{package CallBacks;
- use Net::Stomp::Frame;
- our @calls;
- sub new {
-     my ($class,@args) = @_;
-     push @calls,['new',$class,@args];
-     bless {},$class;
- }
- for my $m (qw(subscribe unsubscribe
-               receive_frame ack
-               send send_frame)) {
-     no strict 'refs';
-     *$m=sub {
-         push @calls,[$m,@_];
-         return 1;
-     };
- }
- sub connect {
-     push @calls,['connect',@_];
-     return Net::Stomp::Frame->new({
-         command => 'CONNECTED',
-         headers => {
-             session => 'ID:foo',
-         },
-         body => '',
-     });
- }
-}
+use lib 't/lib';
+use Stomp_LogCalls;
+
 {package TransformClass;
 
  sub transform {
@@ -75,7 +50,7 @@ my $p;
 subtest 'building' => sub {
     cmp_deeply(exception {
         $p=Net::Stomp::Producer->new({
-            connection_builder => sub { return CallBacks->new(@_) },
+            connection_builder => sub { return Stomp_LogCalls->new(@_) },
             servers => [ {
                 hostname => 'test-host', port => 9999,
                 # these are to be sure they get ignored
@@ -86,9 +61,9 @@ subtest 'building' => sub {
         })
     },undef,'can build');
 
-    cmp_deeply(\@CallBacks::calls,[],
+    cmp_deeply(\@Stomp_LogCalls::calls,[],
                'not connected yet')
-        or note p @CallBacks::calls;
+        or note p @Stomp_LogCalls::calls;
 };
 
 subtest 'serialisation failure' => sub {
@@ -96,9 +71,9 @@ subtest 'serialisation failure' => sub {
                isa('Net::Stomp::Producer::Exceptions::CantSerialize'),
                'no serialiser set');
 
-    cmp_deeply(\@CallBacks::calls,[],
+    cmp_deeply(\@Stomp_LogCalls::calls,[],
                'still not connected')
-        or note p @CallBacks::calls;
+        or note p @Stomp_LogCalls::calls;
 };
 
 subtest 'straight send' => sub {
@@ -106,11 +81,11 @@ subtest 'straight send' => sub {
                undef,
                'no serialiser needed');
 
-    cmp_deeply(\@CallBacks::calls,
+    cmp_deeply(\@Stomp_LogCalls::calls,
                [
                    [
                        'new',
-                       'CallBacks',
+                       'Stomp_LogCalls',
                        { hostname => 'test-host', port => 9999 },
                    ],
                    [
@@ -129,13 +104,13 @@ subtest 'straight send' => sub {
                    ],
                ],
                'connected & sent')
-        or note p @CallBacks::calls;
+        or note p @Stomp_LogCalls::calls;
 };
 
 my $json = JSON::XS->new->canonical(1)->pretty(0);
 
 subtest 'serialise & send' => sub {
-    @CallBacks::calls=();
+    @Stomp_LogCalls::calls=();
 
     $p->serializer(sub{$json->encode($_[0])});
 
@@ -143,7 +118,7 @@ subtest 'serialise & send' => sub {
                undef,
                'serialiser worked');
 
-    cmp_deeply(\@CallBacks::calls,
+    cmp_deeply(\@Stomp_LogCalls::calls,
                [
                    [
                        'send',
@@ -156,11 +131,11 @@ subtest 'serialise & send' => sub {
                    ],
                ],
                'connected & sent')
-        or note p @CallBacks::calls;
+        or note p @Stomp_LogCalls::calls;
 };
 
 subtest 'transformer class' => sub {
-    @CallBacks::calls=();
+    @Stomp_LogCalls::calls=();
 
     $p->serializer(sub{$json->encode($_[0])});
 
@@ -170,7 +145,7 @@ subtest 'transformer class' => sub {
                undef,
                'transformer class worked');
 
-    cmp_deeply(\@CallBacks::calls,
+    cmp_deeply(\@Stomp_LogCalls::calls,
                [
                    [
                        'send',
@@ -183,11 +158,11 @@ subtest 'transformer class' => sub {
                    ],
                ],
                'connected & sent')
-        or note p @CallBacks::calls;
+        or note p @Stomp_LogCalls::calls;
 };
 
 subtest 'transformer instance' => sub {
-    @CallBacks::calls=();
+    @Stomp_LogCalls::calls=();
 
     $p->transformer_args({param => 'passed in'});
 
@@ -197,7 +172,7 @@ subtest 'transformer instance' => sub {
                undef,
                'transformer class worked');
 
-    cmp_deeply(\@CallBacks::calls,
+    cmp_deeply(\@Stomp_LogCalls::calls,
                [
                    [
                        'send',
@@ -210,11 +185,11 @@ subtest 'transformer instance' => sub {
                    ],
                ],
                'connected & sent')
-        or note p @CallBacks::calls;
+        or note p @Stomp_LogCalls::calls;
 };
 
 subtest 'transformer instance exception' => sub {
-    @CallBacks::calls=();
+    @Stomp_LogCalls::calls=();
 
     $p->transformer_args({param => 'passed in'});
 
@@ -229,10 +204,10 @@ subtest 'transformer instance exception' => sub {
                'transformer class died')
         or note $e;
 
-    cmp_deeply(\@CallBacks::calls,
+    cmp_deeply(\@Stomp_LogCalls::calls,
                [],
                'nothing sent')
-        or note p @CallBacks::calls;
+        or note p @Stomp_LogCalls::calls;
 };
 
 subtest 'split transform/send_many' => sub {
@@ -250,7 +225,7 @@ subtest 'split transform/send_many' => sub {
                undef,
                'send_many worked');
 
-    cmp_deeply(\@CallBacks::calls,
+    cmp_deeply(\@Stomp_LogCalls::calls,
                [
                    [
                        'send',
@@ -263,11 +238,11 @@ subtest 'split transform/send_many' => sub {
                    ],
                ],
                'connected & sent')
-        or note p @CallBacks::calls;
+        or note p @Stomp_LogCalls::calls;
 };
 
 subtest 'validation ok' => sub {
-    @CallBacks::calls=();
+    @Stomp_LogCalls::calls=();
 
     $p->serializer(sub{$json->encode($_[0])});
 

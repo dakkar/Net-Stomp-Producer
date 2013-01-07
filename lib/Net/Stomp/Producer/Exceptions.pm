@@ -1,6 +1,6 @@
 package Net::Stomp::Producer::Exceptions;
 {
-  $Net::Stomp::Producer::Exceptions::VERSION = '1.7';
+  $Net::Stomp::Producer::Exceptions::VERSION = '1.8';
 }
 {
   $Net::Stomp::Producer::Exceptions::DIST = 'Net-Stomp-Producer';
@@ -13,7 +13,7 @@ use Net::Stomp::MooseHelpers::Exceptions;
 {
 package Net::Stomp::Producer::Exceptions::StackTrace;
 {
-  $Net::Stomp::Producer::Exceptions::StackTrace::VERSION = '1.7';
+  $Net::Stomp::Producer::Exceptions::StackTrace::VERSION = '1.8';
 }
 {
   $Net::Stomp::Producer::Exceptions::StackTrace::DIST = 'Net-Stomp-Producer';
@@ -40,7 +40,7 @@ around _build_stack_trace_args => sub {
 {
 package Net::Stomp::Producer::Exceptions::BadMessage;
 {
-  $Net::Stomp::Producer::Exceptions::BadMessage::VERSION = '1.7';
+  $Net::Stomp::Producer::Exceptions::BadMessage::VERSION = '1.8';
 }
 {
   $Net::Stomp::Producer::Exceptions::BadMessage::DIST = 'Net-Stomp-Producer';
@@ -68,7 +68,7 @@ __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 {
 package Net::Stomp::Producer::Exceptions::CantSerialize;
 {
-  $Net::Stomp::Producer::Exceptions::CantSerialize::VERSION = '1.7';
+  $Net::Stomp::Producer::Exceptions::CantSerialize::VERSION = '1.8';
 }
 {
   $Net::Stomp::Producer::Exceptions::CantSerialize::DIST = 'Net-Stomp-Producer';
@@ -81,7 +81,7 @@ __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 {
 package Net::Stomp::Producer::Exceptions::BadTransformer;
 {
-  $Net::Stomp::Producer::Exceptions::BadTransformer::VERSION = '1.7';
+  $Net::Stomp::Producer::Exceptions::BadTransformer::VERSION = '1.8';
 }
 {
   $Net::Stomp::Producer::Exceptions::BadTransformer::DIST = 'Net-Stomp-Producer';
@@ -103,7 +103,7 @@ __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 {
 package Net::Stomp::Producer::Exceptions::Invalid;
 {
-  $Net::Stomp::Producer::Exceptions::Invalid::VERSION = '1.7';
+  $Net::Stomp::Producer::Exceptions::Invalid::VERSION = '1.8';
 }
 {
   $Net::Stomp::Producer::Exceptions::Invalid::DIST = 'Net-Stomp-Producer';
@@ -123,6 +123,27 @@ sub as_string {
 __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 }
 
+{
+package Net::Stomp::Producer::Exceptions::Transactional;
+{
+  $Net::Stomp::Producer::Exceptions::Transactional::VERSION = '1.8';
+}
+{
+  $Net::Stomp::Producer::Exceptions::Transactional::DIST = 'Net-Stomp-Producer';
+}
+use Moose;with 'Throwable',
+    'Net::Stomp::MooseHelpers::Exceptions::Stringy',
+    'Net::Stomp::Producer::Exceptions::StackTrace';
+use namespace::autoclean;
+
+sub as_string {
+    my ($self) = @_;
+    sprintf qq{not inside a transaction\n%s},
+        $self->stack_trace->as_string;
+}
+__PACKAGE__->meta->make_immutable(inline_constructor=>0);
+}
+
 1;
 
 __END__
@@ -137,7 +158,7 @@ Net::Stomp::Producer::Exceptions - exception classes for Net::Stomp::Producer
 
 =head1 VERSION
 
-version 1.7
+version 1.8
 
 =head1 DESCRIPTION
 
@@ -169,6 +190,16 @@ Subclass of L</Net::Stomp::Producer::Exceptions::BadMessage>;
 attributes: C<transformer>, C<reason>.
 
 Thrown when validation fails.
+
+=item C<Net::Stomp::Producer::Exceptions::Transactional>
+
+Attributes: C<stack_trace>.
+
+Thrown when you call
+L<txn_commit|Net::Stomp::Producer::Transactional/txn_commit> or
+L<txn_rollback|Net::Stomp::Producer::Transactional/txn_rollback> without a
+corresponding L<txn_begin|Net::Stomp::Producer::Transactional/txn_begin>.
+See L<Net::Stomp::Producer::Transactional> for details.
 
 =back
 

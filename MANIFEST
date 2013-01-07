@@ -6,6 +6,9 @@ Makefile.PL
 dist.ini
 lib/Net/Stomp/Producer.pm
 lib/Net/Stomp/Producer/Exceptions.pm
+lib/Net/Stomp/Producer/Transactional.pm
+t/buffered.t
+t/lib/Stomp_LogCalls.pm
 t/prevent-args-clobbering.t
 t/produce.t
 t/release-no-tabs.t

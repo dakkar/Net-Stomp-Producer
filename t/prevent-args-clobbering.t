@@ -1,34 +1,8 @@
 #!perl
 use strict;
 use warnings;
-{package CallBacks;
- use Net::Stomp::Frame;
- our @calls;
- sub new {
-     my ($class,@args) = @_;
-     push @calls,['new',$class,@args];
-     bless {},$class;
- }
- for my $m (qw(subscribe unsubscribe
-               receive_frame ack
-               send send_frame)) {
-     no strict 'refs';
-     *$m=sub {
-         push @calls,[$m,@_];
-         return 1;
-     };
- }
- sub connect {
-     push @calls,['connect',@_];
-     return Net::Stomp::Frame->new({
-         command => 'CONNECTED',
-         headers => {
-             session => 'ID:foo',
-         },
-         body => '',
-     });
- }
-}
+use lib 't/lib';
+use Stomp_LogCalls;
 
 {package Tr1;
  sub new {
@@ -51,7 +25,7 @@ use Net::Stomp::Producer;
 
 my $args = { foo => '123' };
 my $p=Net::Stomp::Producer->new({
-    connection_builder => sub { return CallBacks->new(@_) },
+    connection_builder => sub { return Stomp_LogCalls->new(@_) },
     servers => [ {
         hostname => 'test-host', port => 9999,
     } ],
@@ -62,7 +36,7 @@ is($p->transformer_args,$args,
    "transformer_args takes the ref");
 
 $p->transform_and_send('Tr1',{});
-cmp_deeply(\@CallBacks::calls,
+cmp_deeply(\@Stomp_LogCalls::calls,
            superbagof(
                [
                    'send',
@@ -74,13 +48,15 @@ cmp_deeply(\@CallBacks::calls,
                ],
            ),
            'sent the arg')
-    or note p @CallBacks::calls;
+    or note p @Stomp_LogCalls::calls;
 
 cmp_deeply($p->transformer_args,{foo=>'123'},
            'args unchanged');
 
+@Stomp_LogCalls::calls=();
+
 $p->transform_and_send('Tr1',{});
-cmp_deeply(\@CallBacks::calls,
+cmp_deeply(\@Stomp_LogCalls::calls,
            superbagof(
                [
                    'send',
@@ -92,7 +68,7 @@ cmp_deeply(\@CallBacks::calls,
                ],
            ),
            'sent the arg, second time')
-    or note p @CallBacks::calls;
+    or note p @Stomp_LogCalls::calls;
 
 cmp_deeply($p->transformer_args,{foo=>'123'},
            'args still unchanged');

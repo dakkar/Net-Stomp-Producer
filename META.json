@@ -37,6 +37,7 @@
             "Data::Dump" : "0",
             "Moose" : "0",
             "Moose::Role" : "0",
+            "MooseX::Types::Common::Numeric" : "0",
             "MooseX::Types::Moose" : "0",
             "Net::Stomp::MooseHelpers::CanConnect" : "1.1",
             "Net::Stomp::MooseHelpers::Exceptions" : "0",
@@ -62,6 +63,6 @@
       }
    },
    "release_status" : "stable",
-   "version" : "1.7"
+   "version" : "1.8"
 }
 

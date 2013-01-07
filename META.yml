@@ -28,6 +28,7 @@ requires:
   Data::Dump: 0
   Moose: 0
   Moose::Role: 0
+  MooseX::Types::Common::Numeric: 0
   MooseX::Types::Moose: 0
   Net::Stomp::MooseHelpers::CanConnect: 1.1
   Net::Stomp::MooseHelpers::Exceptions: 0
@@ -37,4 +38,4 @@ requires:
   Try::Tiny: 0
   bytes: 0
   namespace::autoclean: 0
-version: 1.7
+version: 1.8
