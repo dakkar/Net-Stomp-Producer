@@ -12,12 +12,15 @@ my ($trace_basedir,$host,$port,$time_divisor)=
     (getcwd(),'localhost',61613,1);
 my ($help,$verbose,$pretend);
 
+Getopt::Long::Configure(
+    qw(posix_default bundling no_ignore_case),
+);
 GetOptions(
     'tracedir|d=s' => \$trace_basedir,
-    'host|h=s' => \$host,
-    'port|p=i' => \$port,
+    'host|H=s' => \$host,
+    'port|P=i' => \$port,
     'divisor|t=f' => \$time_divisor,
-    'pretend|P' => \$pretend,
+    'pretend|p' => \$pretend,
     'verbose|v' => \$verbose,
     'help|h' => \$help,
 ) or pod2usage(
@@ -48,23 +51,23 @@ unless (@file_names) {
 my $current_timestamp;
 
 for my $file_name (@file_names) {
-
-    my ($this_timestamp) = ($file_name =~ m{\A(\d+\.\d+)-});
-    if ($current_timestamp) {
-        my $original_delay = $this_timestamp - $current_timestamp;
-        my $desired_delay = $original_delay / $time_divisor;
-        if ($desired_delay > 0) {
-            sleep($desired_delay);
-        }
-    }
-    $current_timestamp = $this_timestamp;
-
     my $frame = $reader->read_frame_from_filename($file_name);
 
     if ($frame->command ne 'MESSAGE') {
         warn "Skipping $file_name, it's not a received message\n";
         next;
     }
+
+    my ($this_timestamp) = ($file_name =~ m{/(\d+\.\d+)-[^/]+\z});
+    if ($current_timestamp) {
+        my $original_delay = $this_timestamp - $current_timestamp;
+        my $desired_delay = $original_delay / $time_divisor;
+        if ($desired_delay > 0) {
+            print "Sleeping $desired_delay seconds\n" if $verbose;
+            sleep($desired_delay);
+        }
+    }
+    $current_timestamp = $this_timestamp;
 
     if ($pretend) {
         print "Pretend sending $file_name\n";
@@ -79,3 +82,49 @@ for my $file_name (@file_names) {
         );
     }
 }
+
+__END__
+
+=head1 NAME
+
+replay-trace -- read a trace directory and re-send the messages in it
+
+=head1 SYNOPSIS
+
+  replay-trace -d /tmp/trace-dir
+
+=head1 OPTIONS
+
+=over 4
+
+=item C<--tracedir>, C<-d>
+
+The directory to read messages from. It should have been populated by
+L<Net::Stomp::MooseHelpers::TracerRole>, via
+L<Net::Stomp::MooseHelpers::TraceStomp> or
+L<Net::Stomp::MooseHelpers::TraceOnly>.
+
+=item C<--host>, C<--port>, C<-H>, C<-P>
+
+Hostname and port of the STOMP server to send messages to.
+
+=item C<--divisor>, C<-t>
+
+Factor to I<divide> time intervals by. By default, the program will
+sleep between messages by the same amount of time they were separated
+by when they were dumped. If you say C<-t 2> it will sleep I<half>
+that time; if you say C<-t 0.5> it will sleep I<twice as long>.
+
+=item C<--pretend>, C<-p>
+
+Don't really send messages, just print a line to STDOUT.
+
+=item C<--verbose>, C<-v>
+
+Print progress to STDOUT.
+
+=item C<--help>, C<-h>
+
+Print this help.
+
+=back
