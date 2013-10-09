@@ -1,4 +1,4 @@
-1.9       2013-10-09 12:07:46 Europe/London
+1.9       2013-10-09 12:10:59 Europe/London
 - allow calling send_transactional instead of send on the STOMP
   connection
 - dump dependency on Net::Stomp::MooseHelpers to avoid problems with
