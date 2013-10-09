@@ -50,6 +50,12 @@ There is also a L</txn_do> method, which takes a coderef and executes
 it between a L</txn_begin> and a L</txn_commit>. If the coderef throws
 an exception, the messages are forgotten.
 
+Please remember that this has nothing to do with STOMP transactions,
+nor with the L<Net::Stomp::Producer/transactional_sending>
+attribute. We could, in future, re-implement this to delegate
+transactional behaviour to the broker via STOMP's C<BEGIN> and
+C<COMMIT> frames. At the moment we do everything client-side.
+
 =method C<in_transaction>
 
 If true, we are inside a "transaction". You can change this with

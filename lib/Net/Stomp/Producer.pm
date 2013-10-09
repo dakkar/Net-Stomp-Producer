@@ -1,9 +1,9 @@
 package Net::Stomp::Producer;
 use Moose;
 use namespace::autoclean;
-with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '1.1' };
+with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '2.1' };
 with 'Net::Stomp::MooseHelpers::ReconnectOnFailure';
-use MooseX::Types::Moose qw(CodeRef HashRef);
+use MooseX::Types::Moose qw(Bool CodeRef HashRef);
 use Net::Stomp::Producer::Exceptions;
 use Class::Load 'load_class';
 use Try::Tiny;
@@ -164,6 +164,20 @@ has default_headers => (
     default => sub { { } },
 );
 
+=attr C<transactional_sending>
+
+Boolean, defaults to false. If true, use
+L<Net::Stomp/send_transactional> instead of L<Net::Stomp/send> to send
+frames.
+
+=cut
+
+has transactional_sending => (
+    isa => Bool,
+    is => 'rw',
+    default => 0,
+);
+
 =method C<send>
 
   $p->send($destination,\%headers,$body);
@@ -214,7 +228,9 @@ sub _really_send {
     my ($self,$frame) = @_;
 
     $self->reconnect_on_failure(
-        sub{ $_[0]->connection->send($_[1]) },
+        $self->transactional_sending
+            ? sub { $_[0]->connection->send_transactional($_[1]) }
+            : sub { $_[0]->connection->send($_[1]) },
         $frame);
 }
 

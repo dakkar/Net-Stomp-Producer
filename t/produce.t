@@ -107,6 +107,33 @@ subtest 'straight send' => sub {
         or note p @Stomp_LogCalls::calls;
 };
 
+subtest 'transactional send' => sub {
+    @Stomp_LogCalls::calls=();
+
+    $p->transactional_sending(1);
+
+    cmp_deeply(exception { $p->send('somewhere',{},'{"a":"message"}') },
+               undef,
+               'no serialiser needed');
+
+    $p->transactional_sending(0);
+
+    cmp_deeply(\@Stomp_LogCalls::calls,
+               [
+                   [
+                       'send_transactional',
+                       ignore(),
+                       {
+                            body  => '{"a":"message"}',
+                            default => 'header',
+                            destination => '/somewhere',
+                       },
+                   ],
+               ],
+               'connected & sent transactionally')
+        or note p @Stomp_LogCalls::calls;
+};
+
 my $json = JSON::XS->new->canonical(1)->pretty(0);
 
 subtest 'serialise & send' => sub {
