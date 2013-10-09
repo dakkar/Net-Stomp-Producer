@@ -3,7 +3,7 @@
 1.9       2013-10-09 12:10:59 Europe/London
 - allow calling send_transactional instead of send on the STOMP
   connection
-- dump dependency on Net::Stomp::MooseHelpers to avoid problems with
+- bump dependency on Net::Stomp::MooseHelpers to avoid problems with
   send_transactional and TraceOnly
 - clarify relationship between send_transactional and
   Net::Stomp::Producer::Transactional
