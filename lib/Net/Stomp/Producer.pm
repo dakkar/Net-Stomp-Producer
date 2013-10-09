@@ -1,15 +1,15 @@
 package Net::Stomp::Producer;
 {
-  $Net::Stomp::Producer::VERSION = '1.8';
+  $Net::Stomp::Producer::VERSION = '1.9';
 }
 {
   $Net::Stomp::Producer::DIST = 'Net-Stomp-Producer';
 }
 use Moose;
 use namespace::autoclean;
-with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '1.1' };
+with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '2.1' };
 with 'Net::Stomp::MooseHelpers::ReconnectOnFailure';
-use MooseX::Types::Moose qw(CodeRef HashRef);
+use MooseX::Types::Moose qw(Bool CodeRef HashRef);
 use Net::Stomp::Producer::Exceptions;
 use Class::Load 'load_class';
 use Try::Tiny;
@@ -38,6 +38,13 @@ has default_headers => (
     isa => HashRef,
     is => 'rw',
     default => sub { { } },
+);
+
+
+has transactional_sending => (
+    isa => Bool,
+    is => 'rw',
+    default => 0,
 );
 
 
@@ -78,7 +85,9 @@ sub _really_send {
     my ($self,$frame) = @_;
 
     $self->reconnect_on_failure(
-        sub{ $_[0]->connection->send($_[1]) },
+        $self->transactional_sending
+            ? sub { $_[0]->connection->send_transactional($_[1]) }
+            : sub { $_[0]->connection->send($_[1]) },
         $frame);
 }
 
@@ -193,7 +202,7 @@ Net::Stomp::Producer - helper object to send messages via Net::Stomp
 
 =head1 VERSION
 
-version 1.8
+version 1.9
 
 =head1 SYNOPSIS
 
@@ -324,6 +333,12 @@ passed a ref.
 Hashref of STOMP headers to use for every frame we send. Headers
 passed in to L</send> take precedence. There is no support for
 I<removing> a default header for a single send.
+
+=head2 C<transactional_sending>
+
+Boolean, defaults to false. If true, use
+L<Net::Stomp/send_transactional> instead of L<Net::Stomp/send> to send
+frames.
 
 =head2 C<transformer_args>
 

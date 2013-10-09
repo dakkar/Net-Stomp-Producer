@@ -4,6 +4,7 @@ META.json
 META.yml
 Makefile.PL
 dist.ini
+examples/replay-trace
 lib/Net/Stomp/Producer.pm
 lib/Net/Stomp/Producer/Exceptions.pm
 lib/Net/Stomp/Producer/Transactional.pm

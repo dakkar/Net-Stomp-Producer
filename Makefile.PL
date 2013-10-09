@@ -11,16 +11,7 @@ use ExtUtils::MakeMaker 6.30;
 my %WriteMakefileArgs = (
   "ABSTRACT" => "helper object to send messages via Net::Stomp",
   "AUTHOR" => "Gianni Ceccarelli <gianni.ceccarelli\@net-a-porter.com>",
-  "BUILD_REQUIRES" => {
-    "Data::Printer" => 0,
-    "JSON::XS" => 0,
-    "Net::Stomp::Frame" => 0,
-    "Test::Deep" => 0,
-    "Test::Fatal" => 0,
-    "Test::More" => 0,
-    "strict" => 0,
-    "warnings" => 0
-  },
+  "BUILD_REQUIRES" => {},
   "CONFIGURE_REQUIRES" => {
     "ExtUtils::MakeMaker" => "6.30"
   },
@@ -35,7 +26,7 @@ my %WriteMakefileArgs = (
     "Moose::Role" => 0,
     "MooseX::Types::Common::Numeric" => 0,
     "MooseX::Types::Moose" => 0,
-    "Net::Stomp::MooseHelpers::CanConnect" => "1.1",
+    "Net::Stomp::MooseHelpers::CanConnect" => "2.1",
     "Net::Stomp::MooseHelpers::Exceptions" => 0,
     "Net::Stomp::MooseHelpers::ReconnectOnFailure" => 0,
     "StackTrace::Auto" => 0,
@@ -44,12 +35,36 @@ my %WriteMakefileArgs = (
     "bytes" => 0,
     "namespace::autoclean" => 0
   },
-  "VERSION" => "1.8",
+  "TEST_REQUIRES" => {
+    "Data::Printer" => 0,
+    "JSON::XS" => 0,
+    "Net::Stomp::Frame" => 0,
+    "Test::Deep" => 0,
+    "Test::Fatal" => 0,
+    "Test::More" => 0,
+    "lib" => 0,
+    "strict" => 0,
+    "warnings" => 0
+  },
+  "VERSION" => "1.9",
   "test" => {
     "TESTS" => "t/*.t"
   }
 );
 
+
+unless ( eval { ExtUtils::MakeMaker->VERSION(6.63_03) } ) {
+  my $tr = delete $WriteMakefileArgs{TEST_REQUIRES};
+  my $br = $WriteMakefileArgs{BUILD_REQUIRES};
+  for my $mod ( keys %$tr ) {
+    if ( exists $br->{$mod} ) {
+      $br->{$mod} = $tr->{$mod} if $tr->{$mod} > $br->{$mod};
+    }
+    else {
+      $br->{$mod} = $tr->{$mod};
+    }
+  }
+}
 
 unless ( eval { ExtUtils::MakeMaker->VERSION(6.56) } ) {
   my $br = delete $WriteMakefileArgs{BUILD_REQUIRES};

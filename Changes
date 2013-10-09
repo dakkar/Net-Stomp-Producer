@@ -1,3 +1,11 @@
+1.9       2013-10-09 12:07:46 Europe/London
+- allow calling send_transactional instead of send on the STOMP
+  connection
+- dump dependency on Net::Stomp::MooseHelpers to avoid problems with
+  send_transactional and TraceOnly
+- clarify relationship between send_transactional and
+  Net::Stomp::Producer::Transactional
+
 1.8       2013-01-07 16:36:32 Europe/London
 - Net::Stomp::Producer::Transactional for transaction-like behaviour
   (begin/commit/rollback, fully re-entrant)

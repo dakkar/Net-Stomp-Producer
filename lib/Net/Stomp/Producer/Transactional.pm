@@ -1,6 +1,6 @@
 package Net::Stomp::Producer::Transactional;
 {
-  $Net::Stomp::Producer::Transactional::VERSION = '1.8';
+  $Net::Stomp::Producer::Transactional::VERSION = '1.9';
 }
 {
   $Net::Stomp::Producer::Transactional::DIST = 'Net-Stomp-Producer';
@@ -139,7 +139,7 @@ Net::Stomp::Producer::Transactional - subclass of Net::Stomp::Producer with tran
 
 =head1 VERSION
 
-version 1.8
+version 1.9
 
 =head1 SYNOPSIS
 
@@ -183,6 +183,12 @@ connection. They will be sent when you call L</txn_commit>,
 There is also a L</txn_do> method, which takes a coderef and executes
 it between a L</txn_begin> and a L</txn_commit>. If the coderef throws
 an exception, the messages are forgotten.
+
+Please remember that this has nothing to do with STOMP transactions,
+nor with the L<Net::Stomp::Producer/transactional_sending>
+attribute. We could, in future, re-implement this to delegate
+transactional behaviour to the broker via STOMP's C<BEGIN> and
+C<COMMIT> frames. At the moment we do everything client-side.
 
 =head1 METHODS
 
