@@ -1,6 +1,6 @@
 package Net::Stomp::Producer::Transactional;
 {
-  $Net::Stomp::Producer::Transactional::VERSION = '1.9';
+  $Net::Stomp::Producer::Transactional::VERSION = '2.0';
 }
 {
   $Net::Stomp::Producer::Transactional::DIST = 'Net-Stomp-Producer';
@@ -131,7 +131,7 @@ __END__
 
 =pod
 
-=encoding utf-8
+=encoding UTF-8
 
 =head1 NAME
 
@@ -139,7 +139,7 @@ Net::Stomp::Producer::Transactional - subclass of Net::Stomp::Producer with tran
 
 =head1 VERSION
 
-version 1.9
+version 2.0
 
 =head1 SYNOPSIS
 

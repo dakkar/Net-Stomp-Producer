@@ -1,6 +1,6 @@
 package Net::Stomp::Producer;
 {
-  $Net::Stomp::Producer::VERSION = '1.9';
+  $Net::Stomp::Producer::VERSION = '2.0';
 }
 {
   $Net::Stomp::Producer::DIST = 'Net-Stomp-Producer';
@@ -11,7 +11,7 @@ with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '2.1' };
 with 'Net::Stomp::MooseHelpers::ReconnectOnFailure';
 use MooseX::Types::Moose qw(Bool CodeRef HashRef);
 use Net::Stomp::Producer::Exceptions;
-use Class::Load 'load_class';
+use Module::Runtime 'use_package_optimistically';
 use Try::Tiny;
 
 # ABSTRACT: helper object to send messages via Net::Stomp
@@ -114,7 +114,7 @@ sub make_transformer {
 
     return $transformer if ref($transformer);
 
-    load_class($transformer);
+    use_package_optimistically($transformer);
     if ($transformer->can('new')) {
         # shallow clone, to make it less likely that a transformer
         # will clobber our args
@@ -194,7 +194,7 @@ __END__
 
 =pod
 
-=encoding utf-8
+=encoding UTF-8
 
 =head1 NAME
 
@@ -202,7 +202,7 @@ Net::Stomp::Producer - helper object to send messages via Net::Stomp
 
 =head1 VERSION
 
-version 1.9
+version 2.0
 
 =head1 SYNOPSIS
 
@@ -366,10 +366,10 @@ If passed a reference, this function just returns it (it assumes it's
 a transformer object ready to use).
 
 If passed a string, tries to load the class with
-L<Class::Load::load_class|Class::Load/load_class>. If the class has a
-C<new> method, it's invoked with the value of L</transformer_args> to
-obtain an object that is then returned. If the class does not have a
-C<new>, the class name is returned.
+L<Module::Runtime::use_package_optimistically|Module::Runtime/use_package_optimistically>. If
+the class has a C<new> method, it's invoked with the value of
+L</transformer_args> to obtain an object that is then returned. If the
+class does not have a C<new>, the class name is returned.
 
 =head2 C<transform>
 

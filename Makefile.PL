@@ -20,8 +20,8 @@ my %WriteMakefileArgs = (
   "LICENSE" => "perl",
   "NAME" => "Net::Stomp::Producer",
   "PREREQ_PM" => {
-    "Class::Load" => 0,
     "Data::Dump" => 0,
+    "Module::Runtime" => 0,
     "Moose" => 0,
     "Moose::Role" => 0,
     "MooseX::Types::Common::Numeric" => 0,
@@ -46,37 +46,44 @@ my %WriteMakefileArgs = (
     "strict" => 0,
     "warnings" => 0
   },
-  "VERSION" => "1.9",
+  "VERSION" => "2.0",
   "test" => {
     "TESTS" => "t/*.t"
   }
 );
 
 
-unless ( eval { ExtUtils::MakeMaker->VERSION(6.63_03) } ) {
-  my $tr = delete $WriteMakefileArgs{TEST_REQUIRES};
-  my $br = $WriteMakefileArgs{BUILD_REQUIRES};
-  for my $mod ( keys %$tr ) {
-    if ( exists $br->{$mod} ) {
-      $br->{$mod} = $tr->{$mod} if $tr->{$mod} > $br->{$mod};
-    }
-    else {
-      $br->{$mod} = $tr->{$mod};
-    }
-  }
-}
+my %FallbackPrereqs = (
+  "Data::Dump" => 0,
+  "Data::Printer" => 0,
+  "JSON::XS" => 0,
+  "Module::Runtime" => 0,
+  "Moose" => 0,
+  "Moose::Role" => 0,
+  "MooseX::Types::Common::Numeric" => 0,
+  "MooseX::Types::Moose" => 0,
+  "Net::Stomp::Frame" => 0,
+  "Net::Stomp::MooseHelpers::CanConnect" => "2.1",
+  "Net::Stomp::MooseHelpers::Exceptions" => 0,
+  "Net::Stomp::MooseHelpers::ReconnectOnFailure" => 0,
+  "StackTrace::Auto" => 0,
+  "Test::Deep" => 0,
+  "Test::Fatal" => 0,
+  "Test::More" => 0,
+  "Throwable" => 0,
+  "Try::Tiny" => 0,
+  "bytes" => 0,
+  "lib" => 0,
+  "namespace::autoclean" => 0,
+  "strict" => 0,
+  "warnings" => 0
+);
 
-unless ( eval { ExtUtils::MakeMaker->VERSION(6.56) } ) {
-  my $br = delete $WriteMakefileArgs{BUILD_REQUIRES};
-  my $pp = $WriteMakefileArgs{PREREQ_PM};
-  for my $mod ( keys %$br ) {
-    if ( exists $pp->{$mod} ) {
-      $pp->{$mod} = $br->{$mod} if $br->{$mod} > $pp->{$mod};
-    }
-    else {
-      $pp->{$mod} = $br->{$mod};
-    }
-  }
+
+unless ( eval { ExtUtils::MakeMaker->VERSION(6.63_03) } ) {
+  delete $WriteMakefileArgs{TEST_REQUIRES};
+  delete $WriteMakefileArgs{BUILD_REQUIRES};
+  $WriteMakefileArgs{PREREQ_PM} = \%FallbackPrereqs;
 }
 
 delete $WriteMakefileArgs{CONFIGURE_REQUIRES}
