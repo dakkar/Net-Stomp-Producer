@@ -39,4 +39,4 @@ requires:
   Try::Tiny: 0
   bytes: 0
   namespace::autoclean: 0
-version: 2.0
+version: 2.000
