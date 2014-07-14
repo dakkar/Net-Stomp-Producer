@@ -21,6 +21,8 @@ for my $m (qw(subscribe unsubscribe
     };
 }
 
+sub current_host { return 0 }
+
 sub connect {
     push @calls,['connect',@_];
     return Net::Stomp::Frame->new({

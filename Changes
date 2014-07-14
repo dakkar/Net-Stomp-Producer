@@ -1,4 +1,5 @@
 {{$NEXT}}
+ - require newer Net::Stomp::MooseHelpers for nicer reconnect handling
 
 2.000     2014-01-13 14:54:10 Europe/London
  - replace Class::Load with Module::Runtime
