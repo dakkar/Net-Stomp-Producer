@@ -86,7 +86,14 @@ subtest 'straight send' => sub {
                    [
                        'new',
                        'Stomp_LogCalls',
-                       { hostname => 'test-host', port => 9999 },
+                       {
+                           hosts => [
+                               superhashof({
+                                   hostname => 'test-host',
+                                   port => 9999,
+                               }),
+                           ],
+                       },
                    ],
                    [
                        'connect',

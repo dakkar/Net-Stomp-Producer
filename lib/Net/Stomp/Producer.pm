@@ -1,13 +1,11 @@
 package Net::Stomp::Producer;
-{
-  $Net::Stomp::Producer::VERSION = '2.000';
-}
+$Net::Stomp::Producer::VERSION = '2.001';
 {
   $Net::Stomp::Producer::DIST = 'Net-Stomp-Producer';
 }
 use Moose;
 use namespace::autoclean;
-with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '2.1' };
+with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '2.6' };
 with 'Net::Stomp::MooseHelpers::ReconnectOnFailure';
 use MooseX::Types::Moose qw(Bool CodeRef HashRef);
 use Net::Stomp::Producer::Exceptions;
@@ -202,7 +200,7 @@ Net::Stomp::Producer - helper object to send messages via Net::Stomp
 
 =head1 VERSION
 
-version 2.000
+version 2.001
 
 =head1 SYNOPSIS
 

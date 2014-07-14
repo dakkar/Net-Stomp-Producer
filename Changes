@@ -1,3 +1,6 @@
+2.001     2014-07-14 16:55:23+01:00 Europe/London
+ - require newer Net::Stomp::MooseHelpers for nicer reconnect handling
+
 2.000     2014-01-13 14:54:10 Europe/London
  - replace Class::Load with Module::Runtime
 

@@ -4,7 +4,7 @@
       "Gianni Ceccarelli <gianni.ceccarelli@net-a-porter.com>"
    ],
    "dynamic_config" : 0,
-   "generated_by" : "Dist::Zilla version 5.006, CPAN::Meta::Converter version 2.132830",
+   "generated_by" : "Dist::Zilla version 5.019, CPAN::Meta::Converter version 2.140640",
    "license" : [
       "perl_5"
    ],
@@ -41,7 +41,7 @@
             "Moose::Role" : "0",
             "MooseX::Types::Common::Numeric" : "0",
             "MooseX::Types::Moose" : "0",
-            "Net::Stomp::MooseHelpers::CanConnect" : "2.1",
+            "Net::Stomp::MooseHelpers::CanConnect" : "2.6",
             "Net::Stomp::MooseHelpers::Exceptions" : "0",
             "Net::Stomp::MooseHelpers::ReconnectOnFailure" : "0",
             "StackTrace::Auto" : "0",
@@ -66,6 +66,6 @@
       }
    },
    "release_status" : "stable",
-   "version" : "2.000"
+   "version" : "2.001"
 }
 
