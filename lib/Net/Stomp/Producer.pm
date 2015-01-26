@@ -288,7 +288,11 @@ sub _really_send {
     my $method = $self->_send_method_to_call;
 
     $self->reconnect_on_failure(
-        sub { $_[0]->connection->$method($_[1]) },
+        sub {
+            my $ret = $_[0]->connection->$method($_[1]);
+            die "Call to $method failed"
+                unless $ret;
+        },
         $frame,
     );
 }

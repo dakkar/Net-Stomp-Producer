@@ -5,6 +5,8 @@ use Net::Stomp::Frame;
 
 our @calls;
 
+our %returns;
+
 sub new {
     my ($class,@args) = @_;
     push @calls,['new',$class,@args];
@@ -19,7 +21,12 @@ for my $m (qw(subscribe unsubscribe
     no strict 'refs';
     *$m=sub {
         push @calls,[$m,@_];
-        return 1;
+        if ($returns{$m} && @{$returns{$m}}) {
+            return shift @{$returns{$m}};
+        }
+        else {
+            return 1;
+        }
     };
 }
 
