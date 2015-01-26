@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+2.004     2015-01-26 16:17:57+00:00 Europe/London
 - actually reconnect if sending fails (requires Net::Stomp 0.51 which
   fixes the return values of the various sending methods)
 
