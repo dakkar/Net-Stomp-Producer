@@ -1,4 +1,6 @@
 {{$NEXT}}
+- allow using arbitrary send_ methods instead of just 'send' and
+  'send_transactional'
 
 2.002     2014-07-29 10:43:25+01:00 Europe/London
  - use SingleEncoding (thanks sergeyromanov)

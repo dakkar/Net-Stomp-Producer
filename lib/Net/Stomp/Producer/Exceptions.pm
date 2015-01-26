@@ -27,6 +27,14 @@ Attributes: C<transformer>, C<stack_trace>.
 
 Thrown when the transformer does not have a C<transform> method.
 
+=item C<Net::Stomp::Producer::Exceptions::BadMethod>
+
+Attributes: C<sending_method_value>, C<method_to_call>,
+C<stack_trace>.
+
+Thrown when L<Net::Stomp::Producer/sending_method> is set to a value
+that would require us to call a non-existent method on the connection.
+
 =item C<Net::Stomp::Producer::Exceptions::Invalid>
 
 Subclass of L</Net::Stomp::Producer::Exceptions::BadMessage>;
@@ -110,6 +118,24 @@ sub as_string {
     my ($self) = @_;
     sprintf qq{%s is not a valid transformer, it doesn't have a "transform" method\n%s},
         $self->transformer,$self->stack_trace->as_string;
+}
+__PACKAGE__->meta->make_immutable(inline_constructor=>0);
+}
+
+{
+package Net::Stomp::Producer::Exceptions::BadMethod;
+use Moose;with 'Throwable',
+    'Net::Stomp::MooseHelpers::Exceptions::Stringy',
+    'Net::Stomp::Producer::Exceptions::StackTrace';
+use namespace::autoclean;
+has sending_method_value => ( is => 'ro', required => 1 );
+has method_to_call => ( is => 'ro', required => 1 );
+
+sub as_string {
+    my ($self) = @_;
+    sprintf qq{%s is not a valid sending method, the connection object does not have a %s method\n%s},
+        $self->sending_method_value,$self->method_to_call,
+        $self->stack_trace->as_string;
 }
 __PACKAGE__->meta->make_immutable(inline_constructor=>0);
 }

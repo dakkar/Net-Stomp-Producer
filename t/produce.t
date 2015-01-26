@@ -114,31 +114,72 @@ subtest 'straight send' => sub {
         or note p @Stomp_LogCalls::calls;
 };
 
-subtest 'transactional send' => sub {
-    @Stomp_LogCalls::calls=();
 
+subtest 'arbitrary sending method' => sub {
+    for my $method ('transactional','with_receipt','just_testing') {
+        @Stomp_LogCalls::calls=();
+
+        $p->sending_method($method);
+
+        cmp_deeply(exception { $p->send('somewhere',{},'{"a":"message"}') },
+                   undef,
+                   'no serialiser needed');
+
+
+        cmp_deeply(\@Stomp_LogCalls::calls,
+                   [
+                       [
+                           "send_$method",
+                           ignore(),
+                           {
+                               body  => '{"a":"message"}',
+                               default => 'header',
+                               destination => '/somewhere',
+                           },
+                       ],
+                   ],
+                   "connected & sent with $method")
+            or note p @Stomp_LogCalls::calls;
+    }
+
+    for my $method ('','default') {
+        @Stomp_LogCalls::calls=();
+
+        $p->sending_method($method);
+
+        cmp_deeply(exception { $p->send('somewhere',{},'{"a":"message"}') },
+                   undef,
+                   'no serialiser needed');
+
+        cmp_deeply(\@Stomp_LogCalls::calls,
+                   [
+                       [
+                           'send',
+                           ignore(),
+                           {
+                               body  => '{"a":"message"}',
+                               default => 'header',
+                               destination => '/somewhere',
+                           },
+                       ],
+                   ],
+                   "connected & sent with default 'send'")
+            or note p @Stomp_LogCalls::calls;
+    }
+
+    $p->sending_method('');
+    cmp_deeply(exception { $p->sending_method('bad') },
+               isa('Net::Stomp::Producer::Exceptions::BadMethod'),
+               'bad sending_method throws exception');
+    is($p->sending_method,'','bad value is not kept');
+};
+
+subtest 'transactional send (back-compat)' => sub {
     $p->transactional_sending(1);
-
-    cmp_deeply(exception { $p->send('somewhere',{},'{"a":"message"}') },
-               undef,
-               'no serialiser needed');
+    is($p->sending_method,'transactional','transactional set');
 
     $p->transactional_sending(0);
-
-    cmp_deeply(\@Stomp_LogCalls::calls,
-               [
-                   [
-                       'send_transactional',
-                       ignore(),
-                       {
-                            body  => '{"a":"message"}',
-                            default => 'header',
-                            destination => '/somewhere',
-                       },
-                   ],
-               ],
-               'connected & sent transactionally')
-        or note p @Stomp_LogCalls::calls;
+    is($p->sending_method,'','transactional reset');
 };
 
 my $json = JSON::XS->new->canonical(1)->pretty(0);

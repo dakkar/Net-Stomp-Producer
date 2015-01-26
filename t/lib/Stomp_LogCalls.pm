@@ -13,7 +13,9 @@ sub new {
 
 for my $m (qw(subscribe unsubscribe
               receive_frame ack
-              send send_frame send_transactional)) {
+              send send_frame send_with_receipt send_transactional
+              send_just_testing
+         )) {
     no strict 'refs';
     *$m=sub {
         push @calls,[$m,@_];

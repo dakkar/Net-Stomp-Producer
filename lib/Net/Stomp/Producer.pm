@@ -3,7 +3,7 @@ use Moose;
 use namespace::autoclean;
 with 'Net::Stomp::MooseHelpers::CanConnect' => { -version => '2.6' };
 with 'Net::Stomp::MooseHelpers::ReconnectOnFailure';
-use MooseX::Types::Moose qw(Bool CodeRef HashRef);
+use MooseX::Types::Moose qw(Str Bool CodeRef HashRef);
 use Net::Stomp::Producer::Exceptions;
 use Module::Runtime 'use_package_optimistically';
 use Try::Tiny;
@@ -166,6 +166,15 @@ has default_headers => (
 
 =attr C<transactional_sending>
 
+B<DEPRECATED>. Use L</sending_method> instead. This boolean was too
+restrictive.
+
+Instead of doing C<< ->transactional_sending(1) >> do C<<
+->sending_method('transactional') >>.
+
+Instead of doing C<< ->transactional_sending(0) >> do C<<
+->sending_method('') >> or C<< ->sending_method('default') >>.
+
 Boolean, defaults to false. If true, use
 L<Net::Stomp/send_transactional> instead of L<Net::Stomp/send> to send
 frames.
@@ -176,7 +185,56 @@ has transactional_sending => (
     isa => Bool,
     is => 'rw',
     default => 0,
+    trigger => \&_transactional_sending_compat,
 );
+
+sub _transactional_sending_compat {
+    my ($self, $value) = @_;
+
+    if ($value) { $self->sending_method('transactional') }
+    else { $self->sending_method('') }
+}
+
+=attr C<sending_method>
+
+String, defaults to C<''>. Selects which method to use on the
+connection's L<Net::Stomp> object to actually send a message. The name
+of the method is derived from the value of this attribute by
+prepending C<send_> to it (so you can't abuse this to call arbitrary
+methods), unless this attribute's value is C<''> or C<'default'>, in
+which case the simple C<send> method will be used.
+
+=cut
+
+has sending_method => (
+    isa => Str,
+    is => 'rw',
+    default => '',
+);
+
+sub _send_method_to_call {
+    my ($self,$requested_method) = @_;
+
+    $requested_method ||= $self->sending_method;
+    my $method_name =
+        ($requested_method eq '' or $requested_method eq 'default')
+        ? 'send'
+        : "send_${requested_method}";
+    return $method_name;
+}
+
+around 'sending_method' => sub {
+    my ($orig,$self,$value) = @_;
+    return $self->$orig() unless @_ > 2;
+
+    my $method = $self->_send_method_to_call($value);
+    Net::Stomp::Producer::Exceptions::BadMethod->throw({
+        sending_method_value => $value,
+        method_to_call => $method,
+    }) unless $self->connection->can($method);
+
+    return $self->$orig($value);
+};
 
 =method C<send>
 
@@ -227,11 +285,12 @@ sub _prepare_message {
 sub _really_send {
     my ($self,$frame) = @_;
 
+    my $method = $self->_send_method_to_call;
+
     $self->reconnect_on_failure(
-        $self->transactional_sending
-            ? sub { $_[0]->connection->send_transactional($_[1]) }
-            : sub { $_[0]->connection->send($_[1]) },
-        $frame);
+        sub { $_[0]->connection->$method($_[1]) },
+        $frame,
+    );
 }
 
 sub send {
