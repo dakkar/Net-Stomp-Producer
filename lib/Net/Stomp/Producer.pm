@@ -212,6 +212,19 @@ prepending C<send_> to it (so you can't abuse this to call arbitrary
 methods), unless this attribute's value is C<''> or C<'default'>, in
 which case the simple C<send> method will be used.
 
+For example, C<< sending_method => 'with_receipt' >> will block
+sending until the broker sends back a receipt for the message (or it
+times out).
+
+C<< sending_method => 'transactional' >> will send a C<COMMIT> frame
+when the receipt is received, or a C<ROLLBACK> frame if something
+breaks.
+
+I<NOTE>: these methods work when the connection is used only to send
+messages, and not to receive them! The current implementation will
+very probably deadlock or throw exceptions at random moments if
+messages arrive while you're sending.
+
 =cut
 
 has sending_method => (
