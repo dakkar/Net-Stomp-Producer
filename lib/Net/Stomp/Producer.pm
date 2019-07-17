@@ -15,7 +15,15 @@ use Try::Tiny;
   my $ser = JSON::XS->new->utf8;
 
   my $p = Net::Stomp::Producer->new({
-    servers => [ { hostname => 'localhost', port => 61613 } ],
+    connect_headers => { login => 'some-login', passcode => 's3cr3t' },
+    servers => [
+      { hostname => 'broker1.local', port => 61613 },
+      { hostname => 'broker2.local', port => 61613, ssl => 1 },
+      { hostname => 'broker3.local', port => 61613, ssl => 1,
+        connect_headers => { login => 'some-different-login',
+                             passcode => 'an0th3r-s3cr3t' },
+      },
+    ],
     serializer => sub { $ser->encode($_[0]) },
     default_headers => { 'content-type' => 'json' },
   });
